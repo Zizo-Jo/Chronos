@@ -1,0 +1,10 @@
+project_id = "walkevsgcugptejoxsfv"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.plan-day]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = false
