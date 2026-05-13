@@ -1,0 +1,121 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-cat-study: var(--cat-study);
+  --color-cat-gym: var(--cat-gym);
+  --color-cat-meal: var(--cat-meal);
+  --color-cat-life: var(--cat-life);
+  --color-cat-other: var(--cat-other);
+  --color-cat-break: var(--cat-break);
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.875rem;
+
+  --background: oklch(0.99 0.005 250);
+  --foreground: oklch(0.18 0.04 265);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.04 265);
+
+  --primary: oklch(0.45 0.18 268);
+  --primary-foreground: oklch(0.99 0.005 250);
+
+  --secondary: oklch(0.96 0.012 260);
+  --secondary-foreground: oklch(0.22 0.04 265);
+
+  --muted: oklch(0.96 0.012 260);
+  --muted-foreground: oklch(0.5 0.03 260);
+
+  --accent: oklch(0.93 0.04 268);
+  --accent-foreground: oklch(0.25 0.08 268);
+
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.91 0.012 260);
+  --input: oklch(0.92 0.012 260);
+  --ring: oklch(0.55 0.16 268);
+
+  /* Category colors — used both in calendar blocks and dashboard chart */
+  --cat-study: oklch(0.55 0.18 268);   /* indigo */
+  --cat-gym:   oklch(0.7  0.18 45);    /* orange */
+  --cat-meal:  oklch(0.65 0.16 155);   /* emerald */
+  --cat-life:  oklch(0.7  0.16 5);     /* rose   */
+  --cat-other: oklch(0.6  0.14 310);   /* violet */
+  --cat-break: oklch(0.7  0.14 200);   /* sky    */
+
+  --gradient-hero: linear-gradient(135deg, oklch(0.45 0.18 268) 0%, oklch(0.6 0.18 320) 100%);
+  --shadow-soft: 0 1px 2px oklch(0.18 0.04 265 / 0.06), 0 8px 24px -8px oklch(0.18 0.04 265 / 0.12);
+  --shadow-glow: 0 10px 40px -10px oklch(0.45 0.18 268 / 0.45);
+}
+
+.dark {
+  --background: oklch(0.16 0.03 265);
+  --foreground: oklch(0.97 0.01 250);
+  --card: oklch(0.21 0.035 265);
+  --card-foreground: oklch(0.97 0.01 250);
+  --popover: oklch(0.21 0.035 265);
+  --popover-foreground: oklch(0.97 0.01 250);
+  --primary: oklch(0.7 0.17 270);
+  --primary-foreground: oklch(0.16 0.03 265);
+  --secondary: oklch(0.26 0.04 265);
+  --secondary-foreground: oklch(0.97 0.01 250);
+  --muted: oklch(0.26 0.04 265);
+  --muted-foreground: oklch(0.7 0.03 260);
+  --accent: oklch(0.32 0.07 270);
+  --accent-foreground: oklch(0.97 0.01 250);
+  --destructive: oklch(0.65 0.22 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.6 0.16 268);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body { font-family: var(--font-sans); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    background-image:
+      radial-gradient(at 0% 0%, oklch(0.45 0.18 268 / 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, oklch(0.65 0.16 320 / 0.06) 0px, transparent 50%);
+    min-height: 100vh;
+  }
+  h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
+}
