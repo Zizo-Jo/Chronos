@@ -1,0 +1,39 @@
+name: Python CI
+
+on:
+  push:
+    branches: [main, 'feature/*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  # STAGE 1: Code Review
+  lint:
+    name: Code Review (flake8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install linter
+        run: pip install flake8
+      - name: Run flake8
+        run: flake8 . --max-line-length=88
+
+  # STAGE 2: Tests (only if lint passes)
+  test:
+    name: Automated Tests (pytest)
+    runs-on: ubuntu-latest
+    needs: lint # <-- quality gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest
+      - name: Run tests
+        run: pytest --tb=short
