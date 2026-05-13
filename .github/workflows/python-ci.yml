@@ -1,0 +1,26 @@
+name: Python CI
+
+on:
+  push:
+    branches: [main, 'feature/*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Code Review (flake8)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install linter
+        run: pip install flake8
+      
+      - name: Run flake8
+        run: flake8 --max-line-length=88
