@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 4%;
+    --foreground: 230 20% 92%;
+
+    --card: 240 18% 7%;
+    --card-foreground: 230 20% 92%;
+
+    --popover: 240 20% 6%;
+    --popover-foreground: 230 20% 92%;
+
+    --primary: 250 95% 70%;
+    --primary-foreground: 240 20% 4%;
+    --primary-glow: 270 95% 75%;
+
+    --secondary: 240 15% 12%;
+    --secondary-foreground: 230 20% 92%;
+
+    --muted: 240 12% 14%;
+    --muted-foreground: 230 10% 60%;
+
+    --accent: 195 100% 60%;
+    --accent-foreground: 240 20% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 15% 16%;
+    --input: 240 15% 14%;
+    --ring: 250 95% 70%;
+
+    --radius: 1.25rem;
+
+    /* Glass surfaces */
+    --glass: 240 20% 100% / 0.04;
+    --glass-border: 240 20% 100% / 0.08;
+    --glass-strong: 240 20% 100% / 0.07;
+
+    /* Brand gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(250 95% 70%) 0%, hsl(280 90% 70%) 50%, hsl(195 100% 65%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(195 100% 60%), hsl(250 95% 70%));
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(250 95% 70% / 0.25), transparent 70%);
+    --gradient-card: linear-gradient(135deg, hsl(240 20% 100% / 0.05), hsl(240 20% 100% / 0.02));
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(250 95% 70% / 0.35);
+    --shadow-card: 0 8px 32px hsl(240 30% 2% / 0.4);
+    --shadow-elevated: 0 20px 60px hsl(240 30% 2% / 0.6);
+
+    --sidebar-background: 240 25% 5%;
+    --sidebar-foreground: 230 15% 70%;
+    --sidebar-primary: 250 95% 70%;
+    --sidebar-primary-foreground: 240 20% 4%;
+    --sidebar-accent: 240 18% 10%;
+    --sidebar-accent-foreground: 230 20% 92%;
+    --sidebar-border: 240 15% 12%;
+    --sidebar-ring: 250 95% 70%;
+  }
+
+  .light {
+    --background: 230 30% 98%;
+    --foreground: 240 30% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 30% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 30% 8%;
+    --primary: 250 85% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 270 85% 65%;
+    --secondary: 230 20% 94%;
+    --secondary-foreground: 240 30% 8%;
+    --muted: 230 20% 95%;
+    --muted-foreground: 240 10% 40%;
+    --accent: 195 90% 50%;
+    --accent-foreground: 0 0% 100%;
+    --border: 230 20% 88%;
+    --input: 230 20% 92%;
+    --ring: 250 85% 60%;
+    --glass: 240 30% 50% / 0.05;
+    --glass-border: 240 30% 50% / 0.1;
+    --glass-strong: 240 30% 50% / 0.08;
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(250 85% 60% / 0.15), transparent 70%);
+    --shadow-card: 0 8px 32px hsl(240 30% 50% / 0.08);
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 15% 30%;
+    --sidebar-accent: 230 20% 95%;
+    --sidebar-accent-foreground: 240 30% 8%;
+    --sidebar-border: 230 20% 90%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, hsl(250 95% 60% / 0.18), transparent),
+      radial-gradient(ellipse 60% 50% at 100% 20%, hsl(195 100% 50% / 0.10), transparent),
+      radial-gradient(ellipse 50% 40% at 50% 100%, hsl(280 90% 60% / 0.12), transparent);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  .light body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, hsl(250 85% 70% / 0.15), transparent),
+      radial-gradient(ellipse 60% 50% at 100% 20%, hsl(195 90% 70% / 0.10), transparent);
+  }
+}
+
+@layer components {
+  .glass {
+    @apply backdrop-blur-2xl border;
+    background: hsl(var(--glass));
+    border-color: hsl(var(--glass-border));
+    box-shadow: var(--shadow-card), inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
+  }
+  .glass-strong {
+    @apply backdrop-blur-2xl border;
+    background: hsl(var(--glass-strong));
+    border-color: hsl(var(--glass-border));
+    box-shadow: var(--shadow-card), inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
+  }
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .gradient-border {
+    position: relative;
+  }
+  .gradient-border::before {
+    content: "";
+    position: absolute; inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--gradient-primary);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  .glow {
+    box-shadow: var(--shadow-glow);
+  }
+}
