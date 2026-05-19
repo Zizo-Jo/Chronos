@@ -1,0 +1,35 @@
+name: TypeScript CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Check out the repository code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Set up Node.js environment
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm' # Caches dependencies for faster subsequent runs
+
+    # 3. Install dependencies cleanly (uses package-lock.json)
+    - name: Install dependencies
+      run: npm ci
+
+    # 4. Compile TypeScript (Make sure you have a "build" script in package.json)
+    - name: Build project
+      run: npm run build
+
+    # 5. Run tests (Optional, but highly recommended)
+    - name: Run tests
+      run: npm test --if-present
