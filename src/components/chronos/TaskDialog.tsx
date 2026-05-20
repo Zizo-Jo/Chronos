@@ -4,6 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { enUS } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { CATEGORIES, type Task, type Category } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 import { toast } from "sonner";
@@ -16,13 +22,22 @@ interface Props {
   onSave: (t: Task) => void;
 }
 
+// YYYY-MM-DD <-> Date helpers (local, no timezone shift)
+const toISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fromISO = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+};
+
 export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("study");
-  const [date, setDate] = useState(defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(defaultDate ?? toISO(new Date()));
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -37,7 +52,7 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }:
         setTitle("");
         setDescription("");
         setCategory("study");
-        setDate(defaultDate ?? new Date().toISOString().slice(0, 10));
+        setDate(defaultDate ?? toISO(new Date()));
         setStart("09:00");
         setEnd("10:00");
       }
@@ -65,6 +80,8 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }:
     onOpenChange(false);
     toast.success(initial ? "Task rescheduled." : "Task added to calendar.");
   };
+
+  const selectedDate = fromISO(date);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,8 +114,36 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }:
               </select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Label>Date</Label>
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "h-9 justify-start text-left font-normal",
+                      !date && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(selectedDate, "PPP", { locale: enUS }) : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    locale={enUS}
+                    selected={selectedDate}
+                    onSelect={(d) => {
+                      if (d) {
+                        setDate(toISO(d));
+                        setPickerOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="start">Start *</Label>
