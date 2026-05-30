@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, format, startOfWeek, isSameDay, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import type { Task } from "@/lib/chronos-types";
-import { catColor, CATEGORIES } from "@/lib/chronos-types";
+import { catColor, CATEGORIES, isAbandoned } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 
 interface Props {
@@ -12,13 +12,14 @@ interface Props {
   onAdd: (date: string) => void;
   onEdit: (t: Task) => void;
   onDelete: (id: string) => void;
+  onComplete: (id: string) => void;
 }
 
 const DAY_START = 6; // 6:00
 const DAY_END = 23;  // 23:00
 const HOUR_PX = 56;
 
-export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete }: Props) {
+export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: Props) {
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
   const [now, setNow] = useState(new Date());
   const [selected, setSelected] = useState<Task | null>(null);
@@ -120,6 +121,7 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete }: Props) {
                 const [eh, em] = t.end.split(":").map(Number);
                 const top = ((sh * 60 + sm - startMin) / 60) * HOUR_PX;
                 const height = Math.max(((eh - sh) * 60 + (em - sm)) / 60 * HOUR_PX, 22);
+                const abandoned = isAbandoned(t, now);
                 return (
                   <button
                     key={t.id}
@@ -129,13 +131,16 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete }: Props) {
                       top,
                       height,
                       background: catColor(t.category),
-                      opacity: t.completed ? 0.55 : 1,
+                      opacity: t.completed ? 0.55 : abandoned ? 0.4 : 1,
+                      filter: abandoned ? "grayscale(0.7)" : undefined,
                     }}
                   >
                     <div className="font-semibold leading-tight truncate">
-                      {t.completed ? "✓ " : ""}{t.title}
+                      {t.completed ? "✓ " : abandoned ? "✗ " : ""}{t.title}
                     </div>
-                    <div className="opacity-90 text-[10px]">{t.start}–{t.end}</div>
+                    <div className="opacity-90 text-[10px]">
+                      {t.start}–{t.end}{abandoned ? " · abandoned" : ""}
+                    </div>
                   </button>
                 );
               })}
@@ -183,15 +188,20 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete }: Props) {
                   <p className="text-xs text-muted-foreground mt-1">Auto-scheduled movement break.</p>
                 )}
               </div>
-              <DialogFooter className="gap-2">
+              <DialogFooter className="flex-row flex-wrap justify-end gap-2 sm:gap-2">
                 {!selected.autoBreak && (
                   <>
-                    <Button variant="destructive" onClick={() => { onDelete(selected.id); setSelected(null); }}>
+                    <Button size="sm" variant="destructive" onClick={() => { onDelete(selected.id); setSelected(null); }}>
                       <Trash2 className="h-4 w-4 mr-1" /> Remove
                     </Button>
-                    <Button onClick={() => { onEdit(selected); setSelected(null); }}>
+                    <Button size="sm" variant="outline" onClick={() => { onEdit(selected); setSelected(null); }}>
                       <Pencil className="h-4 w-4 mr-1" /> Reschedule
                     </Button>
+                    {!selected.completed && (
+                      <Button size="sm" onClick={() => { onComplete(selected.id); setSelected(null); }}>
+                        <CheckCircle2 className="h-4 w-4 mr-1" /> Complete
+                      </Button>
+                    )}
                   </>
                 )}
               </DialogFooter>

@@ -10,7 +10,7 @@ import { CalendarIcon, Sparkles } from "lucide-react"; // 👈 Añadido Sparkles
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, type Task, type Category } from "@/lib/chronos-types";
+import { CATEGORIES, type Task, type Category, isPast } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 import { toast } from "sonner";
 
@@ -158,6 +158,11 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave, t
     if (!end) return toast.error("Finishing hour is required.");
     if (minutesBetween(start, end) <= 0)
       return toast.error("Finishing hour must be after the starting hour.");
+    // Block scheduling in the past for NEW tasks. Rescheduling is allowed
+    // (so users can fix an abandoned task by moving it forward).
+    if (!initial && isPast(date, start)) {
+      return toast.error("You can't add a task before the current time. Pick a future slot or reschedule an existing task.");
+    }
 
     onSave({
       id: initial?.id ?? crypto.randomUUID(),

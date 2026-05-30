@@ -2,15 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";
-import { Plus, CalendarDays, Target, Timer, BarChart3 } from "lucide-react";
+import { Plus, CalendarDays, Target, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useTasks } from "@/lib/chronos-store";
 import type { Task } from "@/lib/chronos-types";
 import { TaskDialog } from "@/components/chronos/TaskDialog";
 import { WeeklyCalendar } from "@/components/chronos/WeeklyCalendar";
-import { SingleFocus } from "@/components/chronos/SingleFocus";
-import { FocusTimer } from "@/components/chronos/FocusTimer";
+import { FocusSession } from "@/components/chronos/FocusSession";
 import { Dashboard } from "@/components/chronos/Dashboard";
 
 export const Route = createFileRoute("/")({
@@ -84,26 +83,27 @@ function Index() {
         </section>
 
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full max-w-xl h-10 bg-muted/60">
+          <TabsList className="grid grid-cols-3 w-full max-w-lg h-10 bg-muted/60">
             <TabsTrigger value="calendar"><CalendarDays className="h-4 w-4 mr-1.5" />Calendar</TabsTrigger>
             <TabsTrigger value="focus"><Target className="h-4 w-4 mr-1.5" />Focus</TabsTrigger>
-            <TabsTrigger value="timer"><Timer className="h-4 w-4 mr-1.5" />Timer</TabsTrigger>
             <TabsTrigger value="dashboard"><BarChart3 className="h-4 w-4 mr-1.5" />Dashboard</TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="mt-6">
-            <WeeklyCalendar tasks={tasks} onAdd={openNew} onEdit={openEdit} onDelete={remove} />
-          </TabsContent>
-
-          <TabsContent value="focus" className="mt-6">
-            <SingleFocus
+            <WeeklyCalendar
               tasks={tasks}
+              onAdd={openNew}
+              onEdit={openEdit}
+              onDelete={remove}
               onComplete={(id) => update(id, { completed: true })}
             />
           </TabsContent>
 
-          <TabsContent value="timer" className="mt-6">
-            <FocusTimer tasks={tasks} />
+          <TabsContent value="focus" className="mt-6">
+            <FocusSession
+              tasks={tasks}
+              onComplete={(id) => update(id, { completed: true })}
+            />
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-6">

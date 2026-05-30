@@ -77,9 +77,9 @@ export function SingleFocus({ tasks, onComplete }: Props) {
             </div>
           )}
 
-          {current && (
-            <Button size="lg" className="mt-10" onClick={() => onComplete(current.id)}>
-              <CheckCircle2 className="h-5 w-5 mr-2" /> Mark completed
+          {focus && (
+            <Button size="lg" className="mt-10" onClick={() => onComplete(focus.id)}>
+              <CheckCircle2 className="h-5 w-5 mr-2" /> Mark completed{current ? "" : " (early)"}
             </Button>
           )}
         </>
