@@ -85,7 +85,7 @@ function Index() {
         <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid grid-cols-3 w-full max-w-lg h-10 bg-muted/60">
             <TabsTrigger value="calendar"><CalendarDays className="h-4 w-4 mr-1.5" />Calendar</TabsTrigger>
-            <TabsTrigger value="focus"><Target className="h-4 w-4 mr-1.5" />Focus &amp; Timer</TabsTrigger>
+            <TabsTrigger value="focus"><Target className="h-4 w-4 mr-1.5" />Focus</TabsTrigger>
             <TabsTrigger value="dashboard"><BarChart3 className="h-4 w-4 mr-1.5" />Dashboard</TabsTrigger>
           </TabsList>
 

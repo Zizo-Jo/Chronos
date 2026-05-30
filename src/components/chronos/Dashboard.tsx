@@ -108,12 +108,12 @@ export function Dashboard({ tasks }: Props) {
   return (
     <div className="space-y-6">
       {/* ---------- NEW: Filter bar (range + search w/ suggestions) ---------- */}
-      <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)] flex flex-col sm:flex-row gap-4 sm:items-end">
+      <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)] flex flex-col sm:flex-row gap-6 sm:gap-8 sm:items-end">
         <div className="flex-1">
           <Label className="text-xs uppercase tracking-wider text-muted-foreground">
             Time range
           </Label>
-          <div className="mt-1.5 inline-flex rounded-md border bg-background p-0.5">
+          <div className="mt-3 inline-flex rounded-md border bg-background p-1 gap-1">
             {ranges.map((r) => (
               <button
                 key={r.key}
@@ -129,7 +129,7 @@ export function Dashboard({ tasks }: Props) {
               </button>
             ))}
           </div>
-          <p className="mt-1.5 text-[11px] text-muted-foreground">{rangeLabel}</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">{rangeLabel}</p>
         </div>
 
         <div className="flex-1 relative">

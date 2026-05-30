@@ -188,18 +188,18 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
                   <p className="text-xs text-muted-foreground mt-1">Auto-scheduled movement break.</p>
                 )}
               </div>
-              <DialogFooter className="gap-2">
+              <DialogFooter className="flex-row flex-wrap justify-end gap-2 sm:gap-2">
                 {!selected.autoBreak && (
                   <>
-                    <Button variant="destructive" onClick={() => { onDelete(selected.id); setSelected(null); }}>
+                    <Button size="sm" variant="destructive" onClick={() => { onDelete(selected.id); setSelected(null); }}>
                       <Trash2 className="h-4 w-4 mr-1" /> Remove
                     </Button>
-                    <Button variant="outline" onClick={() => { onEdit(selected); setSelected(null); }}>
+                    <Button size="sm" variant="outline" onClick={() => { onEdit(selected); setSelected(null); }}>
                       <Pencil className="h-4 w-4 mr-1" /> Reschedule
                     </Button>
                     {!selected.completed && (
-                      <Button onClick={() => { onComplete(selected.id); setSelected(null); }}>
-                        <CheckCircle2 className="h-4 w-4 mr-1" /> Mark completed
+                      <Button size="sm" onClick={() => { onComplete(selected.id); setSelected(null); }}>
+                        <CheckCircle2 className="h-4 w-4 mr-1" /> Complete
                       </Button>
                     )}
                   </>
