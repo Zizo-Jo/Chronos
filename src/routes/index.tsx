@@ -122,6 +122,7 @@ function Index() {
         defaultDate={defaultDate}
         initial={editing}
         onSave={onSave}
+        tasks={tasks}
       />
     </div>
   );

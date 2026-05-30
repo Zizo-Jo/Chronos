@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Sparkles } from "lucide-react"; // 👈 Añadido Sparkles para el botón mágico
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -20,9 +20,9 @@ interface Props {
   defaultDate?: string;
   initial?: Task | null;
   onSave: (t: Task) => void;
+  tasks: Task[]; // 👈 ¡NUEVO! Ahora el diálogo conoce todas las tareas del sistema
 }
 
-// YYYY-MM-DD <-> Date helpers (local, no timezone shift)
 const toISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fromISO = (s: string) => {
@@ -30,7 +30,7 @@ const fromISO = (s: string) => {
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 };
 
-export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }: Props) {
+export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave, tasks }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("study");
@@ -59,7 +59,99 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }:
     }
   }, [open, initial, defaultDate]);
 
-  // Story 1 — validation
+  // ---------- Algoritmo de Auto-Reschedule ----------
+  // ---------- Advanced Future-Only Multi-Day Auto-Reschedule ----------
+  const handleAutoReschedule = () => {
+    // 1. Calculate current duration (default to 60 mins if invalid)
+    const currentDuration = minutesBetween(start, end);
+    const duration = currentDuration > 0 ? currentDuration : 60;
+
+    const timeToMin = (t: string) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    const minToTime = (m: number) => {
+      const h = Math.floor(m / 60);
+      const mins = m % 60;
+      return `${String(h).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+    };
+
+    // Strict 09:00 to 21:00 operational window constraints
+    const ALLOWED_START = 9 * 60; // 540 mins
+    const ALLOWED_END = 21 * 60;  // 1260 mins
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    // If the currently selected date is in the past, start searching from today
+    let checkDate = fromISO(date);
+    if (date < todayStr) {
+      checkDate = fromISO(todayStr);
+    }
+
+    let foundSlot = false;
+    let finalDateStr = date;
+    let finalStartMin = 0;
+
+    // Look ahead up to 7 days to find a free opening
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      const currentDateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
+      
+      let searchStartMin = ALLOWED_START;
+      
+      // CRITICAL FIX: If we are scanning today, start searching from right NOW (rounded up to next 15-min mark)
+      if (currentDateStr === todayStr) {
+        const currentMin = now.getHours() * 60 + now.getMinutes();
+        const roundedCurrentMin = Math.ceil(currentMin / 15) * 15;
+        searchStartMin = Math.max(ALLOWED_START, roundedCurrentMin);
+      }
+
+      // Gather existing busy blocks for this specific iteration date
+      const dayTasks = tasks.filter((t) => t.date === currentDateStr && t.id !== initial?.id);
+      const busyIntervals = dayTasks.map((t) => ({
+        s: timeToMin(t.start),
+        e: timeToMin(t.end),
+      }));
+
+      // Search through the day's available timeline step-by-step
+      for (let current = searchStartMin; current + duration <= ALLOWED_END; current += 15) {
+        const currentEnd = current + duration;
+        const hasOverlap = busyIntervals.some((busy) => current < busy.e && currentEnd > busy.s);
+
+        if (!hasOverlap) {
+          finalStartMin = current;
+          finalDateStr = currentDateStr;
+          foundSlot = true;
+          break; // Found an open slot! Exit inner loop
+        }
+      }
+
+      if (foundSlot) break; // Exit multi-day search loop
+      
+      // Advance calendar object tracking to the next logical day
+      checkDate.setDate(checkDate.getDate() + 1);
+    }
+
+    // 4. Apply findings and alert user smoothly
+    if (foundSlot) {
+      const newStart = minToTime(finalStartMin);
+      const newEnd = minToTime(finalStartMin + duration);
+      
+      setStart(newStart);
+      setEnd(newEnd);
+      setDate(finalDateStr); // Automatically shifts calendar date picker if forced into future days
+
+      if (finalDateStr === date) {
+        toast.success(`Smart slot found today! Shifted to ${newStart} – ${newEnd} ✨`);
+      } else {
+        toast.success(`Today was full/passed. Found slot on ${finalDateStr} at ${newStart} – ${newEnd} 📆`);
+      }
+    } else {
+      toast.error("No free slots available between 09:00 and 21:00 in the next 7 days.");
+    }
+  };
+
   const submit = () => {
     if (!title.trim()) return toast.error("Title is required.");
     if (!start) return toast.error("Beginning hour is required.");
@@ -154,6 +246,18 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave }:
               <Input id="end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
             </div>
           </div>
+
+          {/* ⚡ BOTÓN MÁGICO DE AUTO-RESCHEDULE AÑADIDO ABAJO DE LAS HORAS */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full border-dashed border-primary/40 text-primary hover:bg-primary/5 gap-1.5 mt-1"
+            onClick={handleAutoReschedule}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Auto-Reschedule (Find Smart Slot)
+          </Button>
+
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
