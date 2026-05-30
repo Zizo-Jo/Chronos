@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import type { Task } from "@/lib/chronos-types";
-import { CATEGORIES, catColor } from "@/lib/chronos-types";
+import { CATEGORIES, catColor, isAbandoned } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -251,7 +251,7 @@ export function Dashboard({ tasks }: Props) {
             })}
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <Stat label="Matched tasks" value={filteredTasks.filter((t) => !t.autoBreak).length} />
             <Stat label="In range" value={`${Math.round((total / 60) * 10) / 10}h`} />
             <Stat
@@ -259,7 +259,43 @@ export function Dashboard({ tasks }: Props) {
               value={filteredTasks.filter((t) => t.completed).length}
               color={catColor("meal")}
             />
+            <Stat
+              label="Abandoned"
+              value={filteredTasks.filter((t) => isAbandoned(t)).length}
+              color="var(--destructive)"
+            />
           </div>
+
+          {/* Abandoned task list */}
+          {filteredTasks.some((t) => isAbandoned(t)) && (
+            <div className="mt-6">
+              <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Abandoned tasks
+              </h4>
+              <ul className="space-y-1.5 max-h-44 overflow-auto">
+                {filteredTasks
+                  .filter((t) => isAbandoned(t))
+                  .sort((a, b) => (a.date + a.start < b.date + b.start ? 1 : -1))
+                  .map((t) => (
+                    <li
+                      key={t.id}
+                      className="flex items-center justify-between text-sm rounded-md border bg-background px-3 py-1.5"
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ background: catColor(t.category) }}
+                        />
+                        <span className="truncate">{t.title}</span>
+                      </span>
+                      <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-2">
+                        {t.date} · {t.start}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
