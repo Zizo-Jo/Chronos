@@ -18,10 +18,17 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   defaultDate?: string;
+  defaultStart?: string;
   initial?: Task | null;
   onSave: (t: Task) => void;
   tasks: Task[]; // 👈 ¡NUEVO! Ahora el diálogo conoce todas las tareas del sistema
 }
+
+const addHour = (hhmm: string) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  const nh = Math.min(23, (h ?? 0) + 1);
+  return `${String(nh).padStart(2, "0")}:${String(m ?? 0).padStart(2, "0")}`;
+};
 
 const toISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -30,13 +37,13 @@ const fromISO = (s: string) => {
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 };
 
-export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave, tasks }: Props) {
+export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, initial, onSave, tasks }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("study");
   const [date, setDate] = useState(defaultDate ?? toISO(new Date()));
-  const [start, setStart] = useState("09:00");
-  const [end, setEnd] = useState("10:00");
+  const [start, setStart] = useState(defaultStart ?? "09:00");
+  const [end, setEnd] = useState(defaultStart ? addHour(defaultStart) : "10:00");
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -53,11 +60,11 @@ export function TaskDialog({ open, onOpenChange, defaultDate, initial, onSave, t
         setDescription("");
         setCategory("study");
         setDate(defaultDate ?? toISO(new Date()));
-        setStart("09:00");
-        setEnd("10:00");
+        setStart(defaultStart ?? "09:00");
+        setEnd(defaultStart ? addHour(defaultStart) : "10:00");
       }
     }
-  }, [open, initial, defaultDate]);
+  }, [open, initial, defaultDate, defaultStart]);
 
   // ---------- Algoritmo de Auto-Reschedule ----------
   // ---------- Advanced Future-Only Multi-Day Auto-Reschedule ----------

@@ -31,10 +31,12 @@ function Index() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>(undefined);
+  const [defaultStart, setDefaultStart] = useState<string | undefined>(undefined);
 
-  const openNew = (date?: string) => {
+  const openNew = (date?: string, start?: string) => {
     setEditing(null);
     setDefaultDate(date);
+    setDefaultStart(start);
     setDialogOpen(true);
   };
   const openEdit = (t: Task) => {
@@ -120,6 +122,7 @@ function Index() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         defaultDate={defaultDate}
+        defaultStart={defaultStart}
         initial={editing}
         onSave={onSave}
         tasks={tasks}

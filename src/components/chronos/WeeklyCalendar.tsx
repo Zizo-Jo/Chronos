@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, format, startOfWeek, isSameDay, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, CheckCircle2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import type { Task } from "@/lib/chronos-types";
 import { catColor, CATEGORIES, isAbandoned } from "@/lib/chronos-types";
@@ -9,7 +10,7 @@ import { minutesBetween } from "@/lib/chronos-store";
 
 interface Props {
   tasks: Task[];
-  onAdd: (date: string) => void;
+  onAdd: (date: string, start?: string) => void;
   onEdit: (t: Task) => void;
   onDelete: (id: string) => void;
   onComplete: (id: string) => void;
@@ -23,6 +24,8 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
   const [now, setNow] = useState(new Date());
   const [selected, setSelected] = useState<Task | null>(null);
+  const [query, setQuery] = useState("");
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   useEffect(() => {
     const i = setInterval(() => setNow(new Date()), 60_000);
@@ -41,7 +44,7 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
   return (
     <div className="rounded-2xl border bg-card shadow-[var(--shadow-soft)] overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+      <div className="flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}>
             <ChevronLeft className="h-4 w-4" />
@@ -56,13 +59,70 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
             {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
           </h2>
         </div>
-        <div className="hidden sm:flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          {CATEGORIES.map((c) => (
-            <span key={c.value} className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
-              {c.label}
-            </span>
-          ))}
+        <div className="flex items-center gap-3">
+          {/* Search */}
+          <div className="relative w-56">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setSuggestOpen(true); }}
+              onFocus={() => setSuggestOpen(true)}
+              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+              placeholder="Search tasks…"
+              className="h-8 pl-7 pr-7 text-sm"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => { setQuery(""); setSuggestOpen(false); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {suggestOpen && query.trim() && (
+              <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-auto rounded-md border bg-popover shadow-md">
+                {(() => {
+                  const q = query.trim().toLowerCase();
+                  const matches = tasks
+                    .filter((t) => !t.autoBreak && t.title.toLowerCase().includes(q))
+                    .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+                  if (matches.length === 0) {
+                    return <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>;
+                  }
+                  return matches.slice(0, 20).map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setWeekAnchor(parseISO(t.date));
+                        setQuery("");
+                        setSuggestOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-accent min-w-0"
+                    >
+                      <span className="flex items-center gap-2 truncate min-w-0">
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: catColor(t.category) }} />
+                        <span className="truncate">{t.title}</span>
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-mono tabular-nums whitespace-nowrap shrink-0">
+                        {format(parseISO(t.date), "yy/MM/dd")} {t.start}
+                      </span>
+                    </button>
+                  ));
+                })()}
+              </div>
+            )}
+          </div>
+          <div className="hidden xl:flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            {CATEGORIES.map((c) => (
+              <span key={c.value} className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
+                {c.label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -110,7 +170,12 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
             <div
               key={d.toISOString()}
               className={`relative border-l ${isToday ? "bg-primary/[0.03]" : ""}`}
-              onDoubleClick={() => onAdd(format(d, "yyyy-MM-dd"))}
+              onDoubleClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                const hour = Math.max(DAY_START, Math.min(DAY_END, DAY_START + Math.floor(y / HOUR_PX)));
+                onAdd(format(d, "yyyy-MM-dd"), `${String(hour).padStart(2, "0")}:00`);
+              }}
             >
               {hours.map((h) => (
                 <div key={h} style={{ height: HOUR_PX }} className="border-b border-dashed border-border/60" />
