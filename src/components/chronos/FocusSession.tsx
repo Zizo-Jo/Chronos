@@ -36,13 +36,37 @@ function beep() {
   }
 }
 
-/**
- * Unified Focus section.
- * - Auto-picks current/next task from today.
- * - Timer length = task duration (start→end). Cannot be manually set.
- * - "Start" begins the countdown for the selected task.
- * - "Mark completed" stops the timer AND marks the task done.
- */
+// Helper: Calculate exactly at what remaining seconds the main timer pauses for breaks
+function getBreakIntercepts(totalDurationMinutes: number): { triggerSeconds: number; breakNumber: number }[] {
+  const totalSeconds = totalDurationMinutes * 60;
+  if (totalDurationMinutes >= 90 && totalDurationMinutes <= 120) {
+    return [{ triggerSeconds: Math.floor(totalSeconds / 2), breakNumber: 1 }];
+  }
+  if (totalDurationMinutes > 120) {
+    const oneThird = Math.floor(totalSeconds / 3);
+    return [
+      { triggerSeconds: oneThird * 2, breakNumber: 1 },
+      { triggerSeconds: oneThird, breakNumber: 2 }
+    ];
+  }
+  return [];
+}
+
+// Helper: Generates the live message for the bottom banner
+function getBreakStatusMessage(currentSecondsLeft: number, totalDurationMinutes: number): string {
+  if (totalDurationMinutes < 90) return "";
+  const intercepts = getBreakIntercepts(totalDurationMinutes);
+  const nextIntercept = intercepts.find(i => currentSecondsLeft > i.triggerSeconds);
+
+  if (nextIntercept) {
+    const secondsToBreak = currentSecondsLeft - nextIntercept.triggerSeconds;
+    const minsToBreak = Math.ceil(secondsToBreak / 60);
+    const breakLabel = intercepts.length > 1 ? `movement break ${nextIntercept.breakNumber}` : "movement break";
+    return `🏃‍♂️ ${minsToBreak} min${minsToBreak > 1 ? "s" : ""} remaining until ${breakLabel}`;
+  }
+  return "💪 Final stretch! Focus until the finish line.";
+}
+
 export function FocusSession({ tasks, onComplete }: Props) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -72,51 +96,84 @@ export function FocusSession({ tasks, onComplete }: Props) {
     null;
 
   const [taskId, setTaskId] = useState<string>("");
-  // Keep selection aligned with auto pick when user hasn't overridden it
   useEffect(() => {
     if (!taskId && auto) setTaskId(auto.id);
-    // if the previously selected task disappeared (completed elsewhere), reset
     if (taskId && !todayTasks.some((t) => t.id === taskId)) setTaskId(auto?.id ?? "");
   }, [auto, taskId, todayTasks]);
 
   const selected = todayTasks.find((t) => t.id === taskId) ?? auto ?? null;
 
-  // Timer state
+  // --- Core Timer States ---
   const [remaining, setRemaining] = useState(0);
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
-  // When selection changes (and timer is idle), reset remaining to task length
+  // --- New Break States ---
+  const [isOnBreak, setIsOnBreak] = useState(false);
+  const [breakRemaining, setBreakRemaining] = useState(5 * 60);
+
+  const totalDurationMinutes = selected ? minutesBetween(selected.start, selected.end) : 0;
+
   useEffect(() => {
     if (!started && selected) {
-      setRemaining(minutesBetween(selected.start, selected.end) * 60);
+      setRemaining(totalDurationMinutes * 60);
+      setIsOnBreak(false);
     }
     if (!selected) {
       setRemaining(0);
       setRunning(false);
       setStarted(false);
+      setIsOnBreak(false);
     }
-  }, [selected, started]);
+  }, [selected, started, totalDurationMinutes]);
 
   useEffect(() => {
     if (!running) return;
+
     intervalRef.current = window.setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          window.clearInterval(intervalRef.current!);
-          setRunning(false);
-          beep();
-          toast.success("Focus session completed! 🎉");
-          return 0;
-        }
-        return r - 1;
-      });
+      // 1. If we are currently inside an active 5-minute movement snack
+      if (isOnBreak) {
+        setBreakRemaining((br) => {
+          if (br <= 1) {
+            setIsOnBreak(false);
+            beep();
+            toast.success("Break over! Back to work layout. 💪");
+            return 0;
+          }
+          return br - 1;
+        });
+      } else {
+        // 2. Standard Work Timer Countdown
+        setRemaining((r) => {
+          if (r <= 1) {
+            window.clearInterval(intervalRef.current!);
+            setRunning(false);
+            beep();
+            toast.success("Focus session completed! 🎉");
+            return 0;
+          }
+
+          const nextSeconds = r - 1;
+          const intercepts = getBreakIntercepts(totalDurationMinutes);
+          const hitIntercept = intercepts.some(i => i.triggerSeconds === nextSeconds);
+
+          if (hitIntercept) {
+            setIsOnBreak(true);
+            setBreakRemaining(5 * 60); // Kickoff 5-minute break countdown
+            beep();
+            toast.info("Time for a movement break! Stand up and stretch 🏃‍♂️");
+          }
+
+          return nextSeconds;
+        });
+      }
     }, 1000);
+
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
-  }, [running]);
+  }, [running, isOnBreak, totalDurationMinutes]);
 
   const start = () => {
     if (!selected) {
@@ -132,23 +189,27 @@ export function FocusSession({ tasks, onComplete }: Props) {
   const reset = () => {
     setRunning(false);
     setStarted(false);
-    if (selected) setRemaining(minutesBetween(selected.start, selected.end) * 60);
+    setIsOnBreak(false);
+    if (selected) setRemaining(totalDurationMinutes * 60);
   };
 
   const markCompleted = () => {
     if (!selected) return;
-    // stop timer
     setRunning(false);
     setStarted(false);
+    setIsOnBreak(false);
     if (intervalRef.current) window.clearInterval(intervalRef.current);
     onComplete(selected.id);
     toast.success(`Marked "${selected.title}" as completed.`);
   };
 
-  const totalSec = selected ? minutesBetween(selected.start, selected.end) * 60 : 0;
+  const totalSec = selected ? totalDurationMinutes * 60 : 0;
   const pct = totalSec ? (remaining / totalSec) * 100 : 0;
-  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
-  const ss = String(remaining % 60).padStart(2, "0");
+  
+  // Format based on whether the break clock or main clock is active
+  const displaySeconds = isOnBreak ? breakRemaining : remaining;
+  const mm = String(Math.floor(displaySeconds / 60)).padStart(2, "0");
+  const ss = String(displaySeconds % 60).padStart(2, "0");
 
   if (!selected) {
     return (
@@ -167,11 +228,10 @@ export function FocusSession({ tasks, onComplete }: Props) {
     <div className="rounded-2xl border bg-card p-8 sm:p-12 shadow-[var(--shadow-soft)]">
       <div className="text-center">
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {running ? "Focusing on" : started ? "Paused" : "Up next"}
+          {isOnBreak ? "⚡ Movement Break" : running ? "Focusing on" : started ? "Paused" : "Up next"}
         </div>
 
-        {/* Task picker — hidden while running to reduce distraction */}
-        {!running && todayTasks.length > 1 && (
+        {!running && todayTasks.length > 1 && !isOnBreak && (
           <select
             value={selected.id}
             onChange={(e) => {
@@ -191,14 +251,15 @@ export function FocusSession({ tasks, onComplete }: Props) {
 
         <div
           className="mt-4 inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold text-white"
-          style={{ background: catColor(selected.category) }}
+          style={{ background: isOnBreak ? "#22c55e" : catColor(selected.category) }}
         >
-          {selected.category.toUpperCase()}
+          {isOnBreak ? "BREAK" : selected.category.toUpperCase()}
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">{selected.title}</h1>
+        <h1 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">
+          {isOnBreak ? "Time to Move & Stretch!" : selected.title}
+        </h1>
         <div className="mt-2 text-sm text-muted-foreground">
-          {selected.start} → {selected.end} ·{" "}
-          {minutesBetween(selected.start, selected.end)} min
+          {selected.start} → {selected.end} · {totalDurationMinutes} min
         </div>
       </div>
 
@@ -210,10 +271,10 @@ export function FocusSession({ tasks, onComplete }: Props) {
             cy="50"
             r="45"
             fill="none"
-            stroke={catColor(selected.category)}
+            stroke={isOnBreak ? "#22c55e" : catColor(selected.category)}
             strokeWidth="6"
             strokeLinecap="round"
-            strokeDasharray={`${(pct / 100) * 282.7} 282.7`}
+            strokeDasharray={isOnBreak ? `${(breakRemaining / 300) * 282.7} 282.7` : `${(pct / 100) * 282.7} 282.7`}
             style={{ transition: "stroke-dasharray 1s linear" }}
           />
         </svg>
@@ -222,10 +283,23 @@ export function FocusSession({ tasks, onComplete }: Props) {
             {mm}:{ss}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            {running ? "in focus" : started ? "paused" : "ready"}
+            {isOnBreak ? "stretching" : running ? "in focus" : started ? "paused" : "ready"}
           </div>
         </div>
       </div>
+
+      {/* ⚡ THE LIVE MOVEMENT BREAK SENTENCE SUB-BANNER */}
+      {!isOnBreak && totalDurationMinutes >= 90 && (
+        <p className="text-sm font-medium text-center text-emerald-600 dark:text-emerald-400 mt-6 animate-pulse">
+          {getBreakStatusMessage(remaining, totalDurationMinutes)}
+        </p>
+      )}
+
+      {isOnBreak && (
+        <p className="text-sm font-medium text-center text-amber-500 mt-6 animate-bounce">
+          🏃‍♂️ Step away from the screen, look far away, roll your shoulders!
+        </p>
+      )}
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         {!running ? (
