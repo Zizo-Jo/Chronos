@@ -233,27 +233,33 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
 
       {/* Task details (story 6.4) */}
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="overflow-x-hidden sm:max-w-md">
           {selected && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ background: catColor(selected.category) }} />
-                  <DialogTitle className="font-display text-2xl">{selected.title}</DialogTitle>
+                <div className="flex min-w-0 items-start gap-2 pr-6">
+                  <span className="mt-2 h-3 w-3 shrink-0 rounded-full" style={{ background: catColor(selected.category) }} />
+                  <DialogTitle className="min-w-0 flex-1 font-display text-2xl leading-tight [overflow-wrap:anywhere]">
+                    {selected.title}
+                  </DialogTitle>
                 </div>
               </DialogHeader>
-              <div className="grid gap-2 text-sm">
+              <div className="grid min-w-0 gap-2 text-sm">
                 <div><span className="text-muted-foreground">When: </span>
                   {format(parseISO(selected.date), "EEE, MMM d")} · {selected.start} – {selected.end}
                   <span className="text-muted-foreground"> ({minutesBetween(selected.start, selected.end)} min)</span>
                 </div>
                 <div><span className="text-muted-foreground">Category: </span>{selected.category}</div>
-                {selected.description && <p className="mt-1 text-foreground/90">{selected.description}</p>}
+                {selected.description && (
+                  <p className="mt-1 min-w-0 text-foreground/90 [overflow-wrap:anywhere]">
+                    {selected.description}
+                  </p>
+                )}
                 {selected.autoBreak && (
                   <p className="text-xs text-muted-foreground mt-1">Auto-scheduled movement break.</p>
                 )}
               </div>
-              <DialogFooter className="flex-row flex-wrap justify-end gap-2 sm:gap-2">
+              <DialogFooter className="flex-row flex-wrap justify-end gap-2 sm:gap-2 sm:space-x-0">
                 {!selected.autoBreak && (
                   <>
                     <Button size="sm" variant="destructive" onClick={() => { onDelete(selected.id); setSelected(null); }}>
