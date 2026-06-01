@@ -1,5 +1,10 @@
 export type Category = "study" | "gym" | "meal" | "life" | "other" | "break";
 
+export const TASK_LIMITS = {
+  TITLE_MAX: 30,
+  DESCRIPTION_MAX: 100,
+} as const;
+
 export interface Task {
   id: string;
   title: string;

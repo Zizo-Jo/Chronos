@@ -10,7 +10,7 @@ import { CalendarIcon, Sparkles } from "lucide-react"; // 👈 Añadido Sparkles
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, type Task, type Category, isPast } from "@/lib/chronos-types";
+import { CATEGORIES, TASK_LIMITS, type Task, type Category, isPast } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 import { toast } from "sonner";
 
@@ -161,6 +161,10 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
 
   const submit = () => {
     if (!title.trim()) return toast.error("Title is required.");
+    if (title.length > TASK_LIMITS.TITLE_MAX) 
+      return toast.error(`Title must be ${TASK_LIMITS.TITLE_MAX} characters or less.`);
+    if (description.length > TASK_LIMITS.DESCRIPTION_MAX) 
+      return toast.error(`Description must be ${TASK_LIMITS.DESCRIPTION_MAX} characters or less.`);
     if (!start) return toast.error("Beginning hour is required.");
     if (!end) return toast.error("Finishing hour is required.");
     if (minutesBetween(start, end) <= 0)
@@ -197,12 +201,36 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="title">Title *</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Linear algebra study" />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="title">Title *</Label>
+              <span className={`text-xs ${title.length > TASK_LIMITS.TITLE_MAX ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+                {title.length} / {TASK_LIMITS.TITLE_MAX}
+              </span>
+            </div>
+            <Input 
+              id="title" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              placeholder="Linear algebra study"
+              maxLength={TASK_LIMITS.TITLE_MAX}
+              className={title.length > TASK_LIMITS.TITLE_MAX ? "border-red-500 bg-red-50/30" : ""}
+            />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="desc">Description</Label>
-            <Textarea id="desc" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="desc">Description</Label>
+              <span className={`text-xs ${description.length > TASK_LIMITS.DESCRIPTION_MAX ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+                {description.length} / {TASK_LIMITS.DESCRIPTION_MAX}
+              </span>
+            </div>
+            <Textarea 
+              id="desc" 
+              rows={2} 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={TASK_LIMITS.DESCRIPTION_MAX}
+              className={description.length > TASK_LIMITS.DESCRIPTION_MAX ? "border-red-500 bg-red-50/30" : ""}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
@@ -273,7 +301,12 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit}>{initial ? "Save changes" : "Add task"}</Button>
+          <Button 
+            onClick={submit}
+            disabled={title.length > TASK_LIMITS.TITLE_MAX || description.length > TASK_LIMITS.DESCRIPTION_MAX}
+          >
+            {initial ? "Save changes" : "Add task"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
