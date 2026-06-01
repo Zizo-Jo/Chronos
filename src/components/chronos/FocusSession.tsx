@@ -16,9 +16,14 @@ function toMin(t: string) {
   return h * 60 + m;
 }
 
+type WindowWithWebKitAudioContext = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 function beep() {
   try {
-    const Ctx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+    const Ctx = window.AudioContext ?? (window as WindowWithWebKitAudioContext).webkitAudioContext;
+    if (!Ctx) return;
     const ctx = new Ctx();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
@@ -31,13 +36,18 @@ function beep() {
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
     o.start();
     o.stop(ctx.currentTime + 1.3);
+    o.onended = () => {
+      void ctx.close();
+    };
   } catch {
     /* no-op */
   }
 }
 
 // Helper: Calculate exactly at what remaining seconds the main timer pauses for breaks
-function getBreakIntercepts(totalDurationMinutes: number): { triggerSeconds: number; breakNumber: number }[] {
+function getBreakIntercepts(
+  totalDurationMinutes: number,
+): { triggerSeconds: number; breakNumber: number }[] {
   const totalSeconds = totalDurationMinutes * 60;
   if (totalDurationMinutes >= 90 && totalDurationMinutes <= 120) {
     return [{ triggerSeconds: Math.floor(totalSeconds / 2), breakNumber: 1 }];
@@ -46,7 +56,7 @@ function getBreakIntercepts(totalDurationMinutes: number): { triggerSeconds: num
     const oneThird = Math.floor(totalSeconds / 3);
     return [
       { triggerSeconds: oneThird * 2, breakNumber: 1 },
-      { triggerSeconds: oneThird, breakNumber: 2 }
+      { triggerSeconds: oneThird, breakNumber: 2 },
     ];
   }
   return [];
@@ -56,12 +66,13 @@ function getBreakIntercepts(totalDurationMinutes: number): { triggerSeconds: num
 function getBreakStatusMessage(currentSecondsLeft: number, totalDurationMinutes: number): string {
   if (totalDurationMinutes < 90) return "";
   const intercepts = getBreakIntercepts(totalDurationMinutes);
-  const nextIntercept = intercepts.find(i => currentSecondsLeft > i.triggerSeconds);
+  const nextIntercept = intercepts.find((i) => currentSecondsLeft > i.triggerSeconds);
 
   if (nextIntercept) {
     const secondsToBreak = currentSecondsLeft - nextIntercept.triggerSeconds;
     const minsToBreak = Math.ceil(secondsToBreak / 60);
-    const breakLabel = intercepts.length > 1 ? `movement break ${nextIntercept.breakNumber}` : "movement break";
+    const breakLabel =
+      intercepts.length > 1 ? `movement break ${nextIntercept.breakNumber}` : "movement break";
     return `🏃‍♂️ ${minsToBreak} min${minsToBreak > 1 ? "s" : ""} remaining until ${breakLabel}`;
   }
   return "💪 Final stretch! Focus until the finish line.";
@@ -156,7 +167,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
 
           const nextSeconds = r - 1;
           const intercepts = getBreakIntercepts(totalDurationMinutes);
-          const hitIntercept = intercepts.some(i => i.triggerSeconds === nextSeconds);
+          const hitIntercept = intercepts.some((i) => i.triggerSeconds === nextSeconds);
 
           if (hitIntercept) {
             setIsOnBreak(true);
@@ -205,7 +216,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
 
   const totalSec = selected ? totalDurationMinutes * 60 : 0;
   const pct = totalSec ? (remaining / totalSec) * 100 : 0;
-  
+
   // Format based on whether the break clock or main clock is active
   const displaySeconds = isOnBreak ? breakRemaining : remaining;
   const mm = String(Math.floor(displaySeconds / 60)).padStart(2, "0");
@@ -217,8 +228,8 @@ export function FocusSession({ tasks, onComplete }: Props) {
         <Coffee className="h-12 w-12 mx-auto text-muted-foreground" />
         <h2 className="font-display text-3xl mt-4">Nothing to focus on</h2>
         <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-          You have no remaining tasks scheduled for today. Add one in the calendar to start a
-          focus session.
+          You have no remaining tasks scheduled for today. Add one in the calendar to start a focus
+          session.
         </p>
       </div>
     );
@@ -228,7 +239,13 @@ export function FocusSession({ tasks, onComplete }: Props) {
     <div className="rounded-2xl border bg-card p-8 sm:p-12 shadow-[var(--shadow-soft)]">
       <div className="text-center">
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {isOnBreak ? "⚡ Movement Break" : running ? "Focusing on" : started ? "Paused" : "Up next"}
+          {isOnBreak
+            ? "⚡ Movement Break"
+            : running
+              ? "Focusing on"
+              : started
+                ? "Paused"
+                : "Up next"}
         </div>
 
         {!running && todayTasks.length > 1 && !isOnBreak && (
@@ -255,7 +272,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
         >
           {isOnBreak ? "BREAK" : selected.category.toUpperCase()}
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">
+        <h1 className="font-display text-4xl sm:text-5xl mt-4 leading-tight [overflow-wrap:anywhere]">
           {isOnBreak ? "Time to Move & Stretch!" : selected.title}
         </h1>
         <div className="mt-2 text-sm text-muted-foreground">
@@ -274,7 +291,9 @@ export function FocusSession({ tasks, onComplete }: Props) {
             stroke={isOnBreak ? "#22c55e" : catColor(selected.category)}
             strokeWidth="6"
             strokeLinecap="round"
-            strokeDasharray={isOnBreak ? `${(breakRemaining / 300) * 282.7} 282.7` : `${(pct / 100) * 282.7} 282.7`}
+            strokeDasharray={
+              isOnBreak ? `${(breakRemaining / 300) * 282.7} 282.7` : `${(pct / 100) * 282.7} 282.7`
+            }
             style={{ transition: "stroke-dasharray 1s linear" }}
           />
         </svg>
@@ -314,14 +333,19 @@ export function FocusSession({ tasks, onComplete }: Props) {
         <Button size="lg" variant="ghost" onClick={reset}>
           <RotateCcw className="h-4 w-4 mr-2" /> Reset
         </Button>
-        <Button size="lg" variant="default" onClick={markCompleted} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        <Button
+          size="lg"
+          variant="default"
+          onClick={markCompleted}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
           <CheckCircle2 className="h-4 w-4 mr-2" /> Mark completed
         </Button>
       </div>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Timer length is auto-set from this task's calendar duration. Finishing early? Hit
-        "Mark completed" to stop the timer and close out the task.
+        Timer length is auto-set from this task's calendar duration. Finishing early? Hit "Mark
+        completed" to stop the timer and close out the task.
       </p>
     </div>
   );

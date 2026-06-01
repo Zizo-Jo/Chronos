@@ -57,13 +57,26 @@ function Index() {
           <div className="flex items-center gap-2.5">
             <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden>
               <defs>
-                <linearGradient id="cg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <linearGradient
+                  id="cg"
+                  x1="0"
+                  y1="0"
+                  x2="32"
+                  y2="32"
+                  gradientUnits="userSpaceOnUse"
+                >
                   <stop offset="0%" stopColor="oklch(0.55 0.2 268)" />
                   <stop offset="100%" stopColor="oklch(0.65 0.2 320)" />
                 </linearGradient>
               </defs>
               <circle cx="16" cy="16" r="13" stroke="url(#cg)" strokeWidth="2.25" />
-              <path d="M16 8.5 V16 L21 19" stroke="url(#cg)" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M16 8.5 V16 L21 19"
+                stroke="url(#cg)"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             <span className="font-display text-lg tracking-tight">Chronos</span>
           </div>
@@ -75,20 +88,32 @@ function Index() {
 
       <main className="mx-auto max-w-6xl px-5 sm:px-8 py-10 sm:py-14">
         <section className="mb-10 sm:mb-12">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Plan · Focus · Balance</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+            Plan · Focus · Balance
+          </p>
           <h2 className="font-display text-3xl sm:text-5xl leading-[1.05] max-w-3xl">
             Build a week that builds <span className="text-primary">you</span>.
           </h2>
           <p className="text-muted-foreground mt-4 max-w-xl text-[15px] leading-relaxed">
-            A calm weekly calendar with auto movement breaks, distraction-free focus, and a balance dashboard.
+            A calm weekly calendar with auto movement breaks, distraction-free focus, and a balance
+            dashboard.
           </p>
         </section>
 
         <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid grid-cols-3 w-full max-w-lg h-10 bg-muted/60">
-            <TabsTrigger value="calendar"><CalendarDays className="h-4 w-4 mr-1.5" />Calendar</TabsTrigger>
-            <TabsTrigger value="focus"><Target className="h-4 w-4 mr-1.5" />Focus</TabsTrigger>
-            <TabsTrigger value="dashboard"><BarChart3 className="h-4 w-4 mr-1.5" />Dashboard</TabsTrigger>
+            <TabsTrigger value="calendar">
+              <CalendarDays className="h-4 w-4 mr-1.5" />
+              Calendar
+            </TabsTrigger>
+            <TabsTrigger value="focus">
+              <Target className="h-4 w-4 mr-1.5" />
+              Focus
+            </TabsTrigger>
+            <TabsTrigger value="dashboard">
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Dashboard
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="mt-6">
@@ -102,10 +127,7 @@ function Index() {
           </TabsContent>
 
           <TabsContent value="focus" className="mt-6">
-            <FocusSession
-              tasks={tasks}
-              onComplete={(id) => update(id, { completed: true })}
-            />
+            <FocusSession tasks={tasks} onComplete={(id) => update(id, { completed: true })} />
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-6">

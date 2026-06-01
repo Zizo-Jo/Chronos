@@ -133,7 +133,10 @@ export function Dashboard({ tasks }: Props) {
         </div>
 
         <div className="flex-1 relative">
-          <Label htmlFor="filter-name" className="text-xs uppercase tracking-wider text-muted-foreground">
+          <Label
+            htmlFor="filter-name"
+            className="text-xs uppercase tracking-wider text-muted-foreground"
+          >
             Search task name
           </Label>
           <Input
@@ -227,9 +230,7 @@ export function Dashboard({ tasks }: Props) {
         <div className="rounded-2xl border bg-card p-6 shadow-[var(--shadow-soft)]">
           <h3 className="font-display text-xl mb-4">Breakdown</h3>
           <div className="space-y-3">
-            {data.length === 0 && (
-              <p className="text-sm text-muted-foreground">No data yet.</p>
-            )}
+            {data.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
             {data.map((d) => {
               const pct = total ? (d.value / total) * 100 : 0;
               return (
@@ -244,7 +245,10 @@ export function Dashboard({ tasks }: Props) {
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: d.color }} />
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${pct}%`, background: d.color }}
+                    />
                   </div>
                 </div>
               );
@@ -308,7 +312,9 @@ function Stat({ label, value, color }: { label: string; value: string | number; 
       <div className="font-display text-2xl" style={color ? { color } : undefined}>
         {value}
       </div>
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">
+        {label}
+      </div>
     </div>
   );
 }

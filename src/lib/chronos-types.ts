@@ -6,8 +6,8 @@ export const TASK_LIMITS = {
 } as const;
 
 export const TIME_BOUNDARIES = {
-  EARLIEST_HOUR: 6,    // 6:00 AM
-  LATEST_HOUR: 23,     // 11:00 PM (23:00)
+  EARLIEST_HOUR: 6, // 6:00 AM
+  LATEST_HOUR: 23, // 11:00 PM (23:00)
   EARLIEST_TIME: "06:00",
   LATEST_TIME: "23:00",
 } as const;

@@ -62,11 +62,13 @@ export function SingleFocus({ tasks, onComplete }: Props) {
           >
             {focus.category.toUpperCase()}
           </div>
-          <h1 className="font-display text-5xl sm:text-6xl mt-6 max-w-2xl leading-tight">
+          <h1 className="font-display text-5xl sm:text-6xl mt-6 max-w-2xl leading-tight [overflow-wrap:anywhere]">
             {focus.title}
           </h1>
           {focus.description && (
-            <p className="mt-4 text-muted-foreground max-w-md">{focus.description}</p>
+            <p className="mt-4 text-muted-foreground max-w-md [overflow-wrap:anywhere]">
+              {focus.description}
+            </p>
           )}
           <div className="mt-6 text-2xl font-display text-foreground/80">
             {focus.start} <span className="text-muted-foreground">→</span> {focus.end}

@@ -1,9 +1,24 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, format, startOfWeek, isSameDay, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, CheckCircle2, Search, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  Search,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { Task } from "@/lib/chronos-types";
 import { catColor, CATEGORIES, isAbandoned } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
@@ -17,7 +32,7 @@ interface Props {
 }
 
 const DAY_START = 6; // 6:00
-const DAY_END = 23;  // 23:00
+const DAY_END = 23; // 23:00
 const HOUR_PX = 56;
 
 export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: Props) {
@@ -33,7 +48,10 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
   }, []);
 
   const weekStart = useMemo(() => startOfWeek(weekAnchor, { weekStartsOn: 1 }), [weekAnchor]);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  );
   const hours = useMemo(
     () => Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i),
     [],
@@ -46,7 +64,11 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
       {/* Toolbar */}
       <div className="flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}>
@@ -65,7 +87,10 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               value={query}
-              onChange={(e) => { setQuery(e.target.value); setSuggestOpen(true); }}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSuggestOpen(true);
+              }}
               onFocus={() => setSuggestOpen(true)}
               onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
               placeholder="Search tasks…"
@@ -74,7 +99,10 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
             {query && (
               <button
                 type="button"
-                onClick={() => { setQuery(""); setSuggestOpen(false); }}
+                onClick={() => {
+                  setQuery("");
+                  setSuggestOpen(false);
+                }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" />
@@ -88,7 +116,9 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
                     .filter((t) => !t.autoBreak && t.title.toLowerCase().includes(q))
                     .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
                   if (matches.length === 0) {
-                    return <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>;
+                    return (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
+                    );
                   }
                   return matches.slice(0, 20).map((t) => (
                     <button
@@ -103,7 +133,10 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
                       className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-accent min-w-0"
                     >
                       <span className="flex items-center gap-2 truncate min-w-0">
-                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: catColor(t.category) }} />
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ background: catColor(t.category) }}
+                        />
                         <span className="truncate">{t.title}</span>
                       </span>
                       <span className="text-[11px] text-muted-foreground font-mono tabular-nums whitespace-nowrap shrink-0">
@@ -152,7 +185,11 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
         {/* hours column */}
         <div>
           {hours.map((h) => (
-            <div key={h} style={{ height: HOUR_PX }} className="text-[11px] text-muted-foreground pr-2 pt-1 text-right border-b">
+            <div
+              key={h}
+              style={{ height: HOUR_PX }}
+              className="text-[11px] text-muted-foreground pr-2 pt-1 text-right border-b"
+            >
               {String(h).padStart(2, "0")}:00
             </div>
           ))}
@@ -164,7 +201,8 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
           const nowMin = now.getHours() * 60 + now.getMinutes();
           const startMin = DAY_START * 60;
           const totalMin = (DAY_END - DAY_START + 1) * 60;
-          const nowOffset = ((nowMin - startMin) / totalMin) * (HOUR_PX * (DAY_END - DAY_START + 1));
+          const nowOffset =
+            ((nowMin - startMin) / totalMin) * (HOUR_PX * (DAY_END - DAY_START + 1));
 
           return (
             <div
@@ -173,19 +211,26 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
               onDoubleClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const y = e.clientY - rect.top;
-                const hour = Math.max(DAY_START, Math.min(DAY_END, DAY_START + Math.floor(y / HOUR_PX)));
+                const hour = Math.max(
+                  DAY_START,
+                  Math.min(DAY_END, DAY_START + Math.floor(y / HOUR_PX)),
+                );
                 onAdd(format(d, "yyyy-MM-dd"), `${String(hour).padStart(2, "0")}:00`);
               }}
             >
               {hours.map((h) => (
-                <div key={h} style={{ height: HOUR_PX }} className="border-b border-dashed border-border/60" />
+                <div
+                  key={h}
+                  style={{ height: HOUR_PX }}
+                  className="border-b border-dashed border-border/60"
+                />
               ))}
 
               {dayTasks.map((t) => {
                 const [sh, sm] = t.start.split(":").map(Number);
                 const [eh, em] = t.end.split(":").map(Number);
                 const top = ((sh * 60 + sm - startMin) / 60) * HOUR_PX;
-                const height = Math.max(((eh - sh) * 60 + (em - sm)) / 60 * HOUR_PX, 22);
+                const height = Math.max((((eh - sh) * 60 + (em - sm)) / 60) * HOUR_PX, 22);
                 const abandoned = isAbandoned(t, now);
                 return (
                   <button
@@ -201,10 +246,12 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
                     }}
                   >
                     <div className="font-semibold leading-tight truncate">
-                      {t.completed ? "✓ " : abandoned ? "✗ " : ""}{t.title}
+                      {t.completed ? "✓ " : abandoned ? "✗ " : ""}
+                      {t.title}
                     </div>
                     <div className="opacity-90 text-[10px]">
-                      {t.start}–{t.end}{abandoned ? " · abandoned" : ""}
+                      {t.start}–{t.end}
+                      {abandoned ? " · abandoned" : ""}
                     </div>
                   </button>
                 );
@@ -238,38 +285,71 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
             <>
               <DialogHeader>
                 <div className="flex min-w-0 items-start gap-2 pr-6">
-                  <span className="mt-2 h-3 w-3 shrink-0 rounded-full" style={{ background: catColor(selected.category) }} />
+                  <span
+                    className="mt-2 h-3 w-3 shrink-0 rounded-full"
+                    style={{ background: catColor(selected.category) }}
+                  />
                   <DialogTitle className="min-w-0 flex-1 font-display text-2xl leading-tight [overflow-wrap:anywhere]">
                     {selected.title}
                   </DialogTitle>
                 </div>
               </DialogHeader>
               <div className="grid min-w-0 gap-2 text-sm">
-                <div><span className="text-muted-foreground">When: </span>
-                  {format(parseISO(selected.date), "EEE, MMM d")} · {selected.start} – {selected.end}
-                  <span className="text-muted-foreground"> ({minutesBetween(selected.start, selected.end)} min)</span>
+                <div>
+                  <span className="text-muted-foreground">When: </span>
+                  {format(parseISO(selected.date), "EEE, MMM d")} · {selected.start} –{" "}
+                  {selected.end}
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({minutesBetween(selected.start, selected.end)} min)
+                  </span>
                 </div>
-                <div><span className="text-muted-foreground">Category: </span>{selected.category}</div>
+                <div>
+                  <span className="text-muted-foreground">Category: </span>
+                  {selected.category}
+                </div>
                 {selected.description && (
                   <p className="mt-1 min-w-0 text-foreground/90 [overflow-wrap:anywhere]">
                     {selected.description}
                   </p>
                 )}
                 {selected.autoBreak && (
-                  <p className="text-xs text-muted-foreground mt-1">Auto-scheduled movement break.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Auto-scheduled movement break.
+                  </p>
                 )}
               </div>
               <DialogFooter className="flex-row flex-wrap justify-end gap-2 sm:gap-2 sm:space-x-0">
                 {!selected.autoBreak && (
                   <>
-                    <Button size="sm" variant="destructive" onClick={() => { onDelete(selected.id); setSelected(null); }}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        onDelete(selected.id);
+                        setSelected(null);
+                      }}
+                    >
                       <Trash2 className="h-4 w-4 mr-1" /> Remove
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { onEdit(selected); setSelected(null); }}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        onEdit(selected);
+                        setSelected(null);
+                      }}
+                    >
                       <Pencil className="h-4 w-4 mr-1" /> Reschedule
                     </Button>
                     {!selected.completed && (
-                      <Button size="sm" onClick={() => { onComplete(selected.id); setSelected(null); }}>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          onComplete(selected.id);
+                          setSelected(null);
+                        }}
+                      >
                         <CheckCircle2 className="h-4 w-4 mr-1" /> Complete
                       </Button>
                     )}

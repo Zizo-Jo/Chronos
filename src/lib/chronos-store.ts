@@ -1,16 +1,41 @@
 import { useEffect, useState, useCallback } from "react";
-import type { Task } from "./chronos-types";
+import { CATEGORIES, TIME_BOUNDARIES, type Category, type Task } from "./chronos-types";
 
 const KEY = "chronos.tasks.v1";
+const CATEGORY_VALUES = new Set<Category>(CATEGORIES.map((c) => c.value));
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function read(): Task[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Task[]) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isTask) : [];
   } catch {
     return [];
   }
+}
+
+function isTask(value: unknown): value is Task {
+  if (!value || typeof value !== "object") return false;
+  const task = value as Partial<Task>;
+  return (
+    typeof task.id === "string" &&
+    typeof task.title === "string" &&
+    (task.description === undefined || typeof task.description === "string") &&
+    typeof task.category === "string" &&
+    CATEGORY_VALUES.has(task.category as Category) &&
+    typeof task.date === "string" &&
+    DATE_RE.test(task.date) &&
+    typeof task.start === "string" &&
+    TIME_RE.test(task.start) &&
+    typeof task.end === "string" &&
+    TIME_RE.test(task.end) &&
+    (task.completed === undefined || typeof task.completed === "boolean") &&
+    (task.autoBreak === undefined || typeof task.autoBreak === "boolean")
+  );
 }
 
 const listeners = new Set<() => void>();
@@ -70,7 +95,11 @@ function applyMovementBreaks(tasks: Task[]): Task[] {
     if (dur >= 90) {
       const bStart = t.end;
       const bEnd = addMinutes(t.end, 5);
-      if (bEnd) {
+      if (
+        bEnd &&
+        timeToMinutes(bEnd) <= TIME_BOUNDARIES.LATEST_HOUR * 60 &&
+        !hasOverlap(cleaned, t.id, t.date, bStart, bEnd)
+      ) {
         breaks.push({
           id: `break-${t.id}`,
           title: "Movement Snack 🤸",
@@ -91,6 +120,23 @@ export function minutesBetween(a: string, b: string) {
   const [ah, am] = a.split(":").map(Number);
   const [bh, bm] = b.split(":").map(Number);
   return bh * 60 + bm - (ah * 60 + am);
+}
+
+function hasOverlap(tasks: Task[], sourceId: string, date: string, start: string, end: string) {
+  const startMin = timeToMinutes(start);
+  const endMin = timeToMinutes(end);
+  return tasks.some(
+    (t) =>
+      t.id !== sourceId &&
+      t.date === date &&
+      startMin < timeToMinutes(t.end) &&
+      endMin > timeToMinutes(t.start),
+  );
+}
+
+function timeToMinutes(t: string) {
+  const [h, mm] = t.split(":").map(Number);
+  return h * 60 + mm;
 }
 
 function addMinutes(t: string, m: number): string | null {

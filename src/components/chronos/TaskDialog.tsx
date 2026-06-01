@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -10,7 +16,14 @@ import { CalendarIcon, Sparkles } from "lucide-react"; // 👈 Añadido Sparkles
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, TASK_LIMITS, TIME_BOUNDARIES, type Task, type Category, isPast } from "@/lib/chronos-types";
+import {
+  CATEGORIES,
+  TASK_LIMITS,
+  TIME_BOUNDARIES,
+  type Task,
+  type Category,
+  isPast,
+} from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 import { toast } from "sonner";
 
@@ -49,7 +62,15 @@ const isTimeWithinBoundaries = (time: string): boolean => {
   return minutes >= earliestMinutes && minutes <= latestMinutes;
 };
 
-export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, initial, onSave, tasks }: Props) {
+export function TaskDialog({
+  open,
+  onOpenChange,
+  defaultDate,
+  defaultStart,
+  initial,
+  onSave,
+  tasks,
+}: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("study");
@@ -98,7 +119,7 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
 
     // Strict 09:00 to 21:00 operational window constraints
     const ALLOWED_START = 9 * 60; // 540 mins
-    const ALLOWED_END = 21 * 60;  // 1260 mins
+    const ALLOWED_END = 21 * 60; // 1260 mins
 
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -116,9 +137,9 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
     // Look ahead up to 7 days to find a free opening
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
-      
+
       let searchStartMin = ALLOWED_START;
-      
+
       // CRITICAL FIX: If we are scanning today, start searching from right NOW (rounded up to next 15-min mark)
       if (currentDateStr === todayStr) {
         const currentMin = now.getHours() * 60 + now.getMinutes();
@@ -147,7 +168,7 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
       }
 
       if (foundSlot) break; // Exit multi-day search loop
-      
+
       // Advance calendar object tracking to the next logical day
       checkDate.setDate(checkDate.getDate() + 1);
     }
@@ -156,7 +177,7 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
     if (foundSlot) {
       const newStart = minToTime(finalStartMin);
       const newEnd = minToTime(finalStartMin + duration);
-      
+
       setStart(newStart);
       setEnd(newEnd);
       setDate(finalDateStr); // Automatically shifts calendar date picker if forced into future days
@@ -164,7 +185,9 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
       if (finalDateStr === date) {
         toast.success(`Smart slot found today! Shifted to ${newStart} – ${newEnd} ✨`);
       } else {
-        toast.success(`Today was full/passed. Found slot on ${finalDateStr} at ${newStart} – ${newEnd} 📆`);
+        toast.success(
+          `Today was full/passed. Found slot on ${finalDateStr} at ${newStart} – ${newEnd} 📆`,
+        );
       }
     } else {
       toast.error("No free slots available between 09:00 and 21:00 in the next 7 days.");
@@ -173,22 +196,28 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
 
   const submit = () => {
     if (!title.trim()) return toast.error("Title is required.");
-    if (title.length > TASK_LIMITS.TITLE_MAX) 
+    if (title.length > TASK_LIMITS.TITLE_MAX)
       return toast.error(`Title must be ${TASK_LIMITS.TITLE_MAX} characters or less.`);
-    if (description.length > TASK_LIMITS.DESCRIPTION_MAX) 
+    if (description.length > TASK_LIMITS.DESCRIPTION_MAX)
       return toast.error(`Description must be ${TASK_LIMITS.DESCRIPTION_MAX} characters or less.`);
     if (!start) return toast.error("Beginning hour is required.");
     if (!end) return toast.error("Finishing hour is required.");
-    if (!isTimeWithinBoundaries(start)) 
-      return toast.error(`Start time must be between ${TIME_BOUNDARIES.EARLIEST_TIME} (6:00 AM) and ${TIME_BOUNDARIES.LATEST_TIME} (11:00 PM).`);
-    if (!isTimeWithinBoundaries(end)) 
-      return toast.error(`End time must be between ${TIME_BOUNDARIES.EARLIEST_TIME} (6:00 AM) and ${TIME_BOUNDARIES.LATEST_TIME} (11:00 PM).`);
+    if (!isTimeWithinBoundaries(start))
+      return toast.error(
+        `Start time must be between ${TIME_BOUNDARIES.EARLIEST_TIME} (6:00 AM) and ${TIME_BOUNDARIES.LATEST_TIME} (11:00 PM).`,
+      );
+    if (!isTimeWithinBoundaries(end))
+      return toast.error(
+        `End time must be between ${TIME_BOUNDARIES.EARLIEST_TIME} (6:00 AM) and ${TIME_BOUNDARIES.LATEST_TIME} (11:00 PM).`,
+      );
     if (minutesBetween(start, end) <= 0)
       return toast.error("Finishing hour must be after the starting hour.");
     // Block scheduling in the past for NEW tasks. Rescheduling is allowed
     // (so users can fix an abandoned task by moving it forward).
     if (!initial && isPast(date, start)) {
-      return toast.error("You can't add a task before the current time. Pick a future slot or reschedule an existing task.");
+      return toast.error(
+        "You can't add a task before the current time. Pick a future slot or reschedule an existing task.",
+      );
     }
 
     onSave({
@@ -219,14 +248,16 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
           <div className="grid gap-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="title">Title *</Label>
-              <span className={`text-xs ${title.length > TASK_LIMITS.TITLE_MAX ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+              <span
+                className={`text-xs ${title.length > TASK_LIMITS.TITLE_MAX ? "text-red-500 font-semibold" : "text-muted-foreground"}`}
+              >
                 {title.length} / {TASK_LIMITS.TITLE_MAX}
               </span>
             </div>
-            <Input 
-              id="title" 
-              value={title} 
-              onChange={(e) => setTitle(e.target.value)} 
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="Linear algebra study"
               maxLength={TASK_LIMITS.TITLE_MAX}
               className={title.length > TASK_LIMITS.TITLE_MAX ? "border-red-500 bg-red-50/30" : ""}
@@ -235,17 +266,23 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
           <div className="grid gap-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="desc">Description</Label>
-              <span className={`text-xs ${description.length > TASK_LIMITS.DESCRIPTION_MAX ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+              <span
+                className={`text-xs ${description.length > TASK_LIMITS.DESCRIPTION_MAX ? "text-red-500 font-semibold" : "text-muted-foreground"}`}
+              >
                 {description.length} / {TASK_LIMITS.DESCRIPTION_MAX}
               </span>
             </div>
-            <Textarea 
-              id="desc" 
-              rows={2} 
-              value={description} 
+            <Textarea
+              id="desc"
+              rows={2}
+              value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={TASK_LIMITS.DESCRIPTION_MAX}
-              className={description.length > TASK_LIMITS.DESCRIPTION_MAX ? "border-red-500 bg-red-50/30" : ""}
+              className={
+                description.length > TASK_LIMITS.DESCRIPTION_MAX
+                  ? "border-red-500 bg-red-50/30"
+                  : ""
+              }
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -257,7 +294,9 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 {CATEGORIES.filter((c) => c.value !== "break").map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -273,7 +312,11 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(selectedDate, "PPP", { locale: enUS }) : <span>Pick a date</span>}
+                    {date ? (
+                      format(selectedDate, "PPP", { locale: enUS })
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -295,10 +338,10 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="start">Start</Label>
-              <Input 
-                id="start" 
-                type="time" 
-                value={start} 
+              <Input
+                id="start"
+                type="time"
+                value={start}
                 onChange={(e) => setStart(e.target.value)}
                 min={TIME_BOUNDARIES.EARLIEST_TIME}
                 max={TIME_BOUNDARIES.LATEST_TIME}
@@ -312,10 +355,10 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="end">End</Label>
-              <Input 
-                id="end" 
-                type="time" 
-                value={end} 
+              <Input
+                id="end"
+                type="time"
+                value={end}
                 onChange={(e) => setEnd(e.target.value)}
                 min={TIME_BOUNDARIES.EARLIEST_TIME}
                 max={TIME_BOUNDARIES.LATEST_TIME}
@@ -339,14 +382,15 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
           >
             <Sparkles className="h-3.5 w-3.5" /> Auto-Reschedule (Find Smart Slot)
           </Button>
-
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button 
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
             onClick={submit}
             disabled={
-              title.length > TASK_LIMITS.TITLE_MAX || 
+              title.length > TASK_LIMITS.TITLE_MAX ||
               description.length > TASK_LIMITS.DESCRIPTION_MAX ||
               !isTimeWithinBoundaries(start) ||
               !isTimeWithinBoundaries(end)

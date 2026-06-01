@@ -73,7 +73,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Chronos — Weekly focus calendar" },
-      { name: "description", content: "A calm weekly calendar with single-focus mode, focus timer, and balance dashboard." },
+      {
+        name: "description",
+        content:
+          "A calm weekly calendar with single-focus mode, focus timer, and balance dashboard.",
+      },
       { name: "author", content: "Chronos" },
       { property: "og:title", content: "Chronos — Weekly focus calendar" },
       { property: "og:description", content: "Plan, focus, and balance your week." },

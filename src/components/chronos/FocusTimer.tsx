@@ -11,9 +11,14 @@ interface Props {
 
 const PRESETS = [15, 25, 45];
 
+type WindowWithWebKitAudioContext = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 function beep() {
   try {
-    const Ctx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+    const Ctx = window.AudioContext ?? (window as WindowWithWebKitAudioContext).webkitAudioContext;
+    if (!Ctx) return;
     const ctx = new Ctx();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
@@ -26,6 +31,9 @@ function beep() {
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
     o.start();
     o.stop(ctx.currentTime + 1.3);
+    o.onended = () => {
+      void ctx.close();
+    };
   } catch {
     /* no-op */
   }
@@ -93,12 +101,18 @@ export function FocusTimer({ tasks }: Props) {
       {running && selected ? (
         <div className="text-center mb-6">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Focusing on</div>
-          <div className="font-display text-2xl mt-1">{selected.title}</div>
-          <p className="text-xs text-muted-foreground mt-2">Other tasks are hidden — stay on this one.</p>
+          <div className="font-display text-2xl mt-1 [overflow-wrap:anywhere]">
+            {selected.title}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Other tasks are hidden — stay on this one.
+          </p>
         </div>
       ) : (
         <div className="mb-6">
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Select task</label>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Select task
+          </label>
           <select
             value={taskId}
             onChange={(e) => setTaskId(e.target.value)}
@@ -130,10 +144,10 @@ export function FocusTimer({ tasks }: Props) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="font-display text-6xl tabular-nums">{mm}:{ss}</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {running ? "in focus" : "ready"}
+          <div className="font-display text-6xl tabular-nums">
+            {mm}:{ss}
           </div>
+          <div className="text-xs text-muted-foreground mt-1">{running ? "in focus" : "ready"}</div>
         </div>
       </div>
 
