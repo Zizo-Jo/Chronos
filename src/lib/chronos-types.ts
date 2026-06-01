@@ -1,8 +1,15 @@
 export type Category = "study" | "gym" | "meal" | "life" | "other" | "break";
 
 export const TASK_LIMITS = {
-  TITLE_MAX: 30,
-  DESCRIPTION_MAX: 100,
+  TITLE_MAX: 60,
+  DESCRIPTION_MAX: 240,
+} as const;
+
+export const TIME_BOUNDARIES = {
+  EARLIEST_HOUR: 6,    // 6:00 AM
+  LATEST_HOUR: 23,     // 11:00 PM (23:00)
+  EARLIEST_TIME: "06:00",
+  LATEST_TIME: "23:00",
 } as const;
 
 export interface Task {

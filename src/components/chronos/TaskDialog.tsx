@@ -10,7 +10,7 @@ import { CalendarIcon, Sparkles } from "lucide-react"; // 👈 Añadido Sparkles
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, TASK_LIMITS, type Task, type Category, isPast } from "@/lib/chronos-types";
+import { CATEGORIES, TASK_LIMITS, TIME_BOUNDARIES, type Task, type Category, isPast } from "@/lib/chronos-types";
 import { minutesBetween } from "@/lib/chronos-store";
 import { toast } from "sonner";
 
@@ -26,7 +26,7 @@ interface Props {
 
 const addHour = (hhmm: string) => {
   const [h, m] = hhmm.split(":").map(Number);
-  const nh = Math.min(23, (h ?? 0) + 1);
+  const nh = Math.min(TIME_BOUNDARIES.LATEST_HOUR, (h ?? 0) + 1);
   return `${String(nh).padStart(2, "0")}:${String(m ?? 0).padStart(2, "0")}`;
 };
 
@@ -35,6 +35,18 @@ const toISO = (d: Date) =>
 const fromISO = (s: string) => {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
+};
+
+const timeToMinutes = (time: string): number => {
+  const [h, m] = time.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+};
+
+const isTimeWithinBoundaries = (time: string): boolean => {
+  const minutes = timeToMinutes(time);
+  const earliestMinutes = TIME_BOUNDARIES.EARLIEST_HOUR * 60;
+  const latestMinutes = TIME_BOUNDARIES.LATEST_HOUR * 60;
+  return minutes >= earliestMinutes && minutes <= latestMinutes;
 };
 
 export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, initial, onSave, tasks }: Props) {
@@ -167,6 +179,10 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
       return toast.error(`Description must be ${TASK_LIMITS.DESCRIPTION_MAX} characters or less.`);
     if (!start) return toast.error("Beginning hour is required.");
     if (!end) return toast.error("Finishing hour is required.");
+    if (!isTimeWithinBoundaries(start)) 
+      return toast.error(`Start time must be between ${TIME_BOUNDARIES.EARLIEST_TIME} (6:00 AM) and ${TIME_BOUNDARIES.LATEST_TIME} (11:00 PM).`);
+    if (!isTimeWithinBoundaries(end)) 
+      return toast.error(`End time must be between ${TIME_BOUNDARIES.EARLIEST_TIME} (6:00 AM) and ${TIME_BOUNDARIES.LATEST_TIME} (11:00 PM).`);
     if (minutesBetween(start, end) <= 0)
       return toast.error("Finishing hour must be after the starting hour.");
     // Block scheduling in the past for NEW tasks. Rescheduling is allowed
@@ -278,12 +294,38 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
               </Popover>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="start">Start *</Label>
-              <Input id="start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+              <Label htmlFor="start">Start</Label>
+              <Input 
+                id="start" 
+                type="time" 
+                value={start} 
+                onChange={(e) => setStart(e.target.value)}
+                min={TIME_BOUNDARIES.EARLIEST_TIME}
+                max={TIME_BOUNDARIES.LATEST_TIME}
+                className={!isTimeWithinBoundaries(start) ? "border-red-500 bg-red-50/30" : ""}
+              />
+              {!isTimeWithinBoundaries(start) && (
+                <p className="text-xs text-red-500 font-semibold">
+                  ⚠️ Must be between 6:00 AM and 11:00 PM
+                </p>
+              )}
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="end">End *</Label>
-              <Input id="end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+              <Label htmlFor="end">End</Label>
+              <Input 
+                id="end" 
+                type="time" 
+                value={end} 
+                onChange={(e) => setEnd(e.target.value)}
+                min={TIME_BOUNDARIES.EARLIEST_TIME}
+                max={TIME_BOUNDARIES.LATEST_TIME}
+                className={!isTimeWithinBoundaries(end) ? "border-red-500 bg-red-50/30" : ""}
+              />
+              {!isTimeWithinBoundaries(end) && (
+                <p className="text-xs text-red-500 font-semibold">
+                  ⚠️ Must be between 6:00 AM and 11:00 PM
+                </p>
+              )}
             </div>
           </div>
 
@@ -303,7 +345,12 @@ export function TaskDialog({ open, onOpenChange, defaultDate, defaultStart, init
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button 
             onClick={submit}
-            disabled={title.length > TASK_LIMITS.TITLE_MAX || description.length > TASK_LIMITS.DESCRIPTION_MAX}
+            disabled={
+              title.length > TASK_LIMITS.TITLE_MAX || 
+              description.length > TASK_LIMITS.DESCRIPTION_MAX ||
+              !isTimeWithinBoundaries(start) ||
+              !isTimeWithinBoundaries(end)
+            }
           >
             {initial ? "Save changes" : "Add task"}
           </Button>
