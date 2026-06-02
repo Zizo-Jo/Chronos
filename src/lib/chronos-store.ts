@@ -5,16 +5,21 @@ const KEY = "chronos.tasks.v1";
 const CATEGORY_VALUES = new Set<Category>(CATEGORIES.map((c) => c.value));
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+let memoryTasks: Task[] | null = null;
 
 function read(): Task[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return memoryTasks ?? [];
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
+    if (!raw) {
+      memoryTasks = [];
+      return [];
+    }
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isTask) : [];
+    memoryTasks = Array.isArray(parsed) ? parsed.filter(isTask) : [];
+    return memoryTasks;
   } catch {
-    return [];
+    return memoryTasks ?? [];
   }
 }
 
@@ -48,13 +53,25 @@ export function useTasks() {
     const sync = () => setTasks(read());
     listeners.add(sync);
     sync();
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === KEY) sync();
+    };
+    window.addEventListener("storage", onStorage);
+
     return () => {
       listeners.delete(sync);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
   const persist = useCallback((next: Task[]) => {
-    localStorage.setItem(KEY, JSON.stringify(next));
+    memoryTasks = next;
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+    } catch {
+      /* keep the in-memory session usable when browser storage is unavailable */
+    }
     notify();
   }, []);
 

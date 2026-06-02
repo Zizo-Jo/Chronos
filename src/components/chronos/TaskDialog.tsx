@@ -62,6 +62,13 @@ const isTimeWithinBoundaries = (time: string): boolean => {
   return minutes >= earliestMinutes && minutes <= latestMinutes;
 };
 
+const createTaskId = () => {
+  const randomUUID = globalThis.crypto?.randomUUID;
+  return typeof randomUUID === "function"
+    ? randomUUID.call(globalThis.crypto)
+    : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 export function TaskDialog({
   open,
   onOpenChange,
@@ -221,7 +228,7 @@ export function TaskDialog({
     }
 
     onSave({
-      id: initial?.id ?? crypto.randomUUID(),
+      id: initial?.id ?? createTaskId(),
       title: title.trim(),
       description: description.trim() || undefined,
       category,

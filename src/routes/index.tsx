@@ -35,6 +35,16 @@ function writeStoredTheme(nextDarkMode: boolean) {
   }
 }
 
+function prefersDarkMode() {
+  try {
+    return typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false;
+  } catch {
+    return false;
+  }
+}
+
 export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
@@ -59,8 +69,7 @@ function Index() {
 
   useEffect(() => {
     const storedTheme = readStoredTheme();
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const nextDarkMode = storedTheme ? storedTheme === "dark" : prefersDark;
+    const nextDarkMode = storedTheme ? storedTheme === "dark" : prefersDarkMode();
 
     applyTheme(nextDarkMode);
     setDarkMode(nextDarkMode);
