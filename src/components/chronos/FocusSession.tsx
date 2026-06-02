@@ -37,6 +37,7 @@ type WindowWithWebKitAudioContext = Window & {
 };
 
 const MIN_MANUAL_REWARD_SECONDS = 60;
+const COMPLETE_CONFIRM_MS = 4500;
 
 function beep() {
   try {
@@ -100,6 +101,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
   const { stats, unlockedBadges, nextBadge, awardFocusSession } = useFocusRewards();
   const [now, setNow] = useState(new Date());
   const [lastAward, setLastAward] = useState<FocusRewardAward | null>(null);
+  const [pendingCompleteTaskId, setPendingCompleteTaskId] = useState<string | null>(null);
   useEffect(() => {
     const i = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(i);
@@ -118,6 +120,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
   const [distractionCount, setDistractionCount] = useState(0);
   const focusGuardRef = useRef({ clean: true, distractionCount: 0, lastDistractionAt: 0 });
   const focusedSecondsRef = useRef(0);
+  const completeConfirmTimeoutRef = useRef<number | null>(null);
 
   const today = useMemo(() => {
     const y = now.getFullYear();
@@ -158,6 +161,14 @@ export function FocusSession({ tasks, onComplete }: Props) {
 
   const totalDurationMinutes = selected ? minutesBetween(selected.start, selected.end) : 0;
 
+  const clearCompleteConfirmation = useCallback(() => {
+    if (completeConfirmTimeoutRef.current) {
+      window.clearTimeout(completeConfirmTimeoutRef.current);
+      completeConfirmTimeoutRef.current = null;
+    }
+    setPendingCompleteTaskId(null);
+  }, []);
+
   const resetFocusGuard = useCallback(() => {
     focusGuardRef.current = { clean: true, distractionCount: 0, lastDistractionAt: 0 };
     setSessionClean(true);
@@ -166,8 +177,18 @@ export function FocusSession({ tasks, onComplete }: Props) {
 
   const resetSessionProgress = useCallback(() => {
     focusedSecondsRef.current = 0;
+    clearCompleteConfirmation();
     resetFocusGuard();
-  }, [resetFocusGuard]);
+  }, [clearCompleteConfirmation, resetFocusGuard]);
+
+  useEffect(
+    () => () => {
+      if (completeConfirmTimeoutRef.current) {
+        window.clearTimeout(completeConfirmTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const recordDistraction = useCallback(() => {
     const nowMs = Date.now();
@@ -347,6 +368,20 @@ export function FocusSession({ tasks, onComplete }: Props) {
   };
 
   const markCompleted = () => {
+    if (!selected) return;
+    if (pendingCompleteTaskId !== selected.id) {
+      setPendingCompleteTaskId(selected.id);
+      if (completeConfirmTimeoutRef.current) {
+        window.clearTimeout(completeConfirmTimeoutRef.current);
+      }
+      completeConfirmTimeoutRef.current = window.setTimeout(() => {
+        completeConfirmTimeoutRef.current = null;
+        setPendingCompleteTaskId(null);
+      }, COMPLETE_CONFIRM_MS);
+      toast.info("Click Confirm complete to finish this focus task.");
+      return;
+    }
+    clearCompleteConfirmation();
     completeFocusSession("manual");
   };
 
@@ -358,6 +393,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
   const mm = String(Math.floor(displaySeconds / 60)).padStart(2, "0");
   const ss = String(displaySeconds % 60).padStart(2, "0");
   const guardActive = started || running;
+  const confirmingComplete = selected ? pendingCompleteTaskId === selected.id : false;
 
   if (!selected) {
     return (
@@ -506,9 +542,14 @@ export function FocusSession({ tasks, onComplete }: Props) {
             size="lg"
             variant="default"
             onClick={markCompleted}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className={
+              confirmingComplete
+                ? "bg-amber-500 text-white hover:bg-amber-600"
+                : "bg-emerald-600 text-white hover:bg-emerald-700"
+            }
           >
-            <CheckCircle2 className="h-4 w-4 mr-2" /> Mark completed
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            {confirmingComplete ? "Confirm complete" : "Mark completed"}
           </Button>
         </div>
 
