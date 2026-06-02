@@ -16,7 +16,7 @@ function read(): Task[] {
       return [];
     }
     const parsed: unknown = JSON.parse(raw);
-    memoryTasks = Array.isArray(parsed) ? parsed.filter(isTask) : [];
+    memoryTasks = Array.isArray(parsed) ? sanitizeTasks(parsed) : [];
     return memoryTasks;
   } catch {
     return memoryTasks ?? [];
@@ -26,7 +26,7 @@ function read(): Task[] {
 function isTask(value: unknown): value is Task {
   if (!value || typeof value !== "object") return false;
   const task = value as Partial<Task>;
-  return (
+  const hasShape =
     typeof task.id === "string" &&
     typeof task.title === "string" &&
     (task.description === undefined || typeof task.description === "string") &&
@@ -39,8 +39,31 @@ function isTask(value: unknown): value is Task {
     typeof task.end === "string" &&
     TIME_RE.test(task.end) &&
     (task.completed === undefined || typeof task.completed === "boolean") &&
-    (task.autoBreak === undefined || typeof task.autoBreak === "boolean")
+    (task.autoBreak === undefined || typeof task.autoBreak === "boolean");
+
+  const { start, end } = task;
+  if (!hasShape || typeof start !== "string" || typeof end !== "string") return false;
+
+  const startMin = timeToMinutes(start);
+  const endMin = timeToMinutes(end);
+  return (
+    startMin >= TIME_BOUNDARIES.EARLIEST_HOUR * 60 &&
+    endMin <= TIME_BOUNDARIES.LATEST_HOUR * 60 &&
+    endMin > startMin
   );
+}
+
+function sanitizeTasks(values: unknown[]): Task[] {
+  const ids = new Set<string>();
+  const tasks: Task[] = [];
+
+  for (const value of values) {
+    if (!isTask(value) || ids.has(value.id)) continue;
+    ids.add(value.id);
+    tasks.push(value);
+  }
+
+  return tasks;
 }
 
 const listeners = new Set<() => void>();
@@ -55,7 +78,7 @@ export function useTasks() {
     sync();
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === KEY) sync();
+      if (event.key === KEY || event.key === null) sync();
     };
     window.addEventListener("storage", onStorage);
 

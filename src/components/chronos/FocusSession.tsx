@@ -105,6 +105,20 @@ export function FocusSession({ tasks, onComplete }: Props) {
     return () => clearInterval(i);
   }, []);
 
+  const [taskId, setTaskId] = useState<string>("");
+  const [remaining, setRemaining] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [started, setStarted] = useState(false);
+  const intervalRef = useRef<number | null>(null);
+
+  // --- New Break States ---
+  const [isOnBreak, setIsOnBreak] = useState(false);
+  const [breakRemaining, setBreakRemaining] = useState(5 * 60);
+  const [sessionClean, setSessionClean] = useState(true);
+  const [distractionCount, setDistractionCount] = useState(0);
+  const focusGuardRef = useRef({ clean: true, distractionCount: 0, lastDistractionAt: 0 });
+  const focusedSecondsRef = useRef(0);
+
   const today = useMemo(() => {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
@@ -121,32 +135,26 @@ export function FocusSession({ tasks, onComplete }: Props) {
     [tasks, today],
   );
 
+  const focusableTasks = useMemo(
+    () =>
+      todayTasks.filter((t) => {
+        if (started && t.id === taskId) return true;
+        return toMin(t.end) > nowMin;
+      }),
+    [nowMin, started, taskId, todayTasks],
+  );
+
   const auto =
-    todayTasks.find((t) => toMin(t.start) <= nowMin && toMin(t.end) > nowMin) ??
-    todayTasks.find((t) => toMin(t.start) > nowMin) ??
+    focusableTasks.find((t) => toMin(t.start) <= nowMin && toMin(t.end) > nowMin) ??
+    focusableTasks.find((t) => toMin(t.start) > nowMin) ??
     null;
 
-  const [taskId, setTaskId] = useState<string>("");
   useEffect(() => {
     if (!taskId && auto) setTaskId(auto.id);
-    if (taskId && !todayTasks.some((t) => t.id === taskId)) setTaskId(auto?.id ?? "");
-  }, [auto, taskId, todayTasks]);
+    if (taskId && !focusableTasks.some((t) => t.id === taskId)) setTaskId(auto?.id ?? "");
+  }, [auto, focusableTasks, taskId]);
 
-  const selected = todayTasks.find((t) => t.id === taskId) ?? auto ?? null;
-
-  // --- Core Timer States ---
-  const [remaining, setRemaining] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [started, setStarted] = useState(false);
-  const intervalRef = useRef<number | null>(null);
-
-  // --- New Break States ---
-  const [isOnBreak, setIsOnBreak] = useState(false);
-  const [breakRemaining, setBreakRemaining] = useState(5 * 60);
-  const [sessionClean, setSessionClean] = useState(true);
-  const [distractionCount, setDistractionCount] = useState(0);
-  const focusGuardRef = useRef({ clean: true, distractionCount: 0, lastDistractionAt: 0 });
-  const focusedSecondsRef = useRef(0);
+  const selected = focusableTasks.find((t) => t.id === taskId) ?? auto ?? null;
 
   const totalDurationMinutes = selected ? minutesBetween(selected.start, selected.end) : 0;
 
@@ -317,6 +325,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
       toast.error("No task to focus on.");
       return;
     }
+    if (!taskId) setTaskId(selected.id);
     if (!started) {
       resetSessionProgress();
       setLastAward(null);
@@ -397,7 +406,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
                   : "Up next"}
           </div>
 
-          {!running && todayTasks.length > 1 && !isOnBreak && (
+          {!running && focusableTasks.length > 1 && !isOnBreak && (
             <select
               value={selected.id}
               onChange={(e) => {
@@ -409,7 +418,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
               }}
               className="mt-3 h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
-              {todayTasks.map((t) => (
+              {focusableTasks.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.start}–{t.end} · {t.title}
                 </option>
