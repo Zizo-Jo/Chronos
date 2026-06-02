@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";
-import { Plus, CalendarDays, Target, BarChart3 } from "lucide-react";
+import { Plus, CalendarDays, Target, BarChart3, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useTasks } from "@/lib/chronos-store";
@@ -11,6 +11,29 @@ import { TaskDialog } from "@/components/chronos/TaskDialog";
 import { WeeklyCalendar } from "@/components/chronos/WeeklyCalendar";
 import { FocusSession } from "@/components/chronos/FocusSession";
 import { Dashboard } from "@/components/chronos/Dashboard";
+
+const THEME_KEY = "chronos.theme";
+
+function applyTheme(nextDarkMode: boolean) {
+  document.documentElement.classList.toggle("dark", nextDarkMode);
+  document.documentElement.style.colorScheme = nextDarkMode ? "dark" : "light";
+}
+
+function readStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTheme(nextDarkMode: boolean) {
+  try {
+    localStorage.setItem(THEME_KEY, nextDarkMode ? "dark" : "light");
+  } catch {
+    /* keep the visual theme even if persistence is unavailable */
+  }
+}
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -28,10 +51,29 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { tasks, add, update, remove } = useTasks();
+  const [darkMode, setDarkMode] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>(undefined);
   const [defaultStart, setDefaultStart] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const storedTheme = readStoredTheme();
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const nextDarkMode = storedTheme ? storedTheme === "dark" : prefersDark;
+
+    applyTheme(nextDarkMode);
+    setDarkMode(nextDarkMode);
+  }, []);
+
+  const toggleTheme = () => {
+    setDarkMode((current) => {
+      const next = !current;
+      applyTheme(next);
+      writeStoredTheme(next);
+      return next;
+    });
+  };
 
   const openNew = (date?: string, start?: string) => {
     setEditing(null);
@@ -80,9 +122,23 @@ function Index() {
             </svg>
             <span className="font-display text-lg tracking-tight">Chronos</span>
           </div>
-          <Button size="sm" onClick={() => openNew()}>
-            <Plus className="h-4 w-4 mr-1" /> New task
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={toggleTheme}
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              className="border-primary/20 bg-background/70 hover:bg-accent dark:border-primary/40 dark:bg-primary/10 dark:text-primary"
+            >
+              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <span className="hidden sm:inline">{darkMode ? "Light" : "Dark"}</span>
+            </Button>
+            <Button size="sm" onClick={() => openNew()}>
+              <Plus className="h-4 w-4 mr-1" /> New task
+            </Button>
+          </div>
         </div>
       </header>
 

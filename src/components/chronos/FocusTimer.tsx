@@ -15,6 +15,13 @@ type WindowWithWebKitAudioContext = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+function toLocalISODate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function beep() {
   try {
     const Ctx = window.AudioContext ?? (window as WindowWithWebKitAudioContext).webkitAudioContext;
@@ -91,10 +98,9 @@ export function FocusTimer({ tasks }: Props) {
   const ss = String(remaining % 60).padStart(2, "0");
   const total = minutes * 60;
   const pct = total ? (remaining / total) * 100 : 0;
+  const today = toLocalISODate(new Date());
 
-  const todayTasks = tasks.filter(
-    (t) => !t.completed && !t.autoBreak && t.date === new Date().toISOString().slice(0, 10),
-  );
+  const todayTasks = tasks.filter((t) => !t.completed && !t.autoBreak && t.date === today);
 
   return (
     <div className="rounded-2xl border bg-card p-8 shadow-[var(--shadow-soft)]">
