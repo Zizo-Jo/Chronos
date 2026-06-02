@@ -8,6 +8,7 @@ const REMINDER_MINUTES = 10;
 const CHECK_INTERVAL_MS = 30_000;
 
 type ReminderPermission = NotificationPermission | "unsupported";
+let memorySentKeys = new Set<string>();
 
 function supportsNotifications() {
   return typeof window !== "undefined" && "Notification" in window;
@@ -33,13 +34,17 @@ function readSentKeys() {
   try {
     const raw = sessionStorage.getItem(SENT_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed.filter((key) => typeof key === "string") : []);
+    memorySentKeys = new Set(
+      Array.isArray(parsed) ? parsed.filter((key) => typeof key === "string") : [],
+    );
+    return new Set(memorySentKeys);
   } catch {
-    return new Set<string>();
+    return new Set(memorySentKeys);
   }
 }
 
 function writeSentKeys(keys: Set<string>) {
+  memorySentKeys = new Set(keys);
   try {
     sessionStorage.setItem(SENT_KEY, JSON.stringify([...keys]));
   } catch {
@@ -47,10 +52,12 @@ function writeSentKeys(keys: Set<string>) {
   }
 }
 
-function taskStartDate(task: Task) {
+function getTaskStartMs(task: Task) {
   const [year, month, day] = task.date.split("-").map(Number);
   const [hour, minute] = task.start.split(":").map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1, hour ?? 0, minute ?? 0, 0, 0);
+
+  if (![year, month, day, hour, minute].every(Number.isFinite)) return null;
+  return new Date(year, month - 1, day, hour, minute, 0, 0).getTime();
 }
 
 function taskReminderKey(task: Task) {
@@ -67,24 +74,37 @@ function pruneSentKeys(tasks: Task[], sentKeys: Set<string>) {
 function getDueReminderTasks(tasks: Task[], now: Date, sentKeys: Set<string>) {
   const nowMs = now.getTime();
   const reminderWindowMs = REMINDER_MINUTES * 60 * 1000;
+  const dueTasks: { task: Task; startMs: number }[] = [];
 
-  return tasks.filter((task) => {
-    if (task.completed || task.autoBreak || sentKeys.has(taskReminderKey(task))) return false;
+  for (const task of tasks) {
+    if (task.completed || task.autoBreak || sentKeys.has(taskReminderKey(task))) continue;
 
-    const msUntilStart = taskStartDate(task).getTime() - nowMs;
-    return msUntilStart > 0 && msUntilStart <= reminderWindowMs;
+    const startMs = getTaskStartMs(task);
+    if (startMs === null) continue;
+
+    const msUntilStart = startMs - nowMs;
+    if (msUntilStart > 0 && msUntilStart <= reminderWindowMs) {
+      dueTasks.push({ task, startMs });
+    }
+  }
+
+  return dueTasks.sort((a, b) => a.startMs - b.startMs).map(({ task }) => task);
+}
+
+function showInAppReminder(task: Task) {
+  toast.info(`Upcoming task: ${task.title}`, {
+    description: `Starts at ${task.start}.`,
+    id: `task-reminder-${taskReminderKey(task)}`,
   });
 }
 
 function showTaskReminder(task: Task) {
   const title = "Chronos reminder";
   const body = `${task.title} starts at ${task.start}.`;
+  const appIsFocused = document.visibilityState === "visible" && document.hasFocus();
 
-  if (document.visibilityState === "visible") {
-    toast.info(`Upcoming task: ${task.title}`, {
-      description: `Starts at ${task.start}.`,
-      id: `task-reminder-${taskReminderKey(task)}`,
-    });
+  if (appIsFocused) {
+    showInAppReminder(task);
     return;
   }
 
@@ -94,10 +114,7 @@ function showTaskReminder(task: Task) {
       tag: `chronos-${taskReminderKey(task)}`,
     });
   } catch {
-    toast.info(`Upcoming task: ${task.title}`, {
-      description: `Starts at ${task.start}.`,
-      id: `task-reminder-${taskReminderKey(task)}`,
-    });
+    showInAppReminder(task);
   }
 }
 
