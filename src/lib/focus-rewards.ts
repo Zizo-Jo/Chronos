@@ -113,7 +113,7 @@ function sanitizeStats(value: unknown): FocusRewardState {
   if (!value || typeof value !== "object") return { ...EMPTY_STATS };
   const stats = value as Partial<FocusRewardState>;
   const awardedTaskIds = Array.isArray(stats.awardedTaskIds)
-    ? stats.awardedTaskIds.filter((id): id is string => typeof id === "string")
+    ? Array.from(new Set(stats.awardedTaskIds.filter((id): id is string => typeof id === "string")))
     : [];
 
   return {
@@ -186,7 +186,7 @@ export function useFocusRewards() {
     sync();
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === KEY) sync();
+      if (event.key === KEY || event.key === null) sync();
     };
     window.addEventListener("storage", onStorage);
 

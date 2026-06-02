@@ -36,6 +36,8 @@ type WindowWithWebKitAudioContext = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+const MIN_MANUAL_REWARD_SECONDS = 60;
+
 function beep() {
   try {
     const Ctx = window.AudioContext ?? (window as WindowWithWebKitAudioContext).webkitAudioContext;
@@ -144,6 +146,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
   const [sessionClean, setSessionClean] = useState(true);
   const [distractionCount, setDistractionCount] = useState(0);
   const focusGuardRef = useRef({ clean: true, distractionCount: 0, lastDistractionAt: 0 });
+  const focusedSecondsRef = useRef(0);
 
   const totalDurationMinutes = selected ? minutesBetween(selected.start, selected.end) : 0;
 
@@ -152,6 +155,11 @@ export function FocusSession({ tasks, onComplete }: Props) {
     setSessionClean(true);
     setDistractionCount(0);
   }, []);
+
+  const resetSessionProgress = useCallback(() => {
+    focusedSecondsRef.current = 0;
+    resetFocusGuard();
+  }, [resetFocusGuard]);
 
   const recordDistraction = useCallback(() => {
     const nowMs = Date.now();
@@ -174,16 +182,16 @@ export function FocusSession({ tasks, onComplete }: Props) {
     if (!started && selected) {
       setRemaining(totalDurationMinutes * 60);
       setIsOnBreak(false);
-      resetFocusGuard();
+      resetSessionProgress();
     }
     if (!selected) {
       setRemaining(0);
       setRunning(false);
       setStarted(false);
       setIsOnBreak(false);
-      resetFocusGuard();
+      resetSessionProgress();
     }
-  }, [selected, started, totalDurationMinutes, resetFocusGuard]);
+  }, [selected, started, totalDurationMinutes, resetSessionProgress]);
 
   useEffect(() => {
     if (!running || !started || isOnBreak) return;
@@ -212,13 +220,17 @@ export function FocusSession({ tasks, onComplete }: Props) {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
       if (source === "timer") beep();
 
-      const shouldAward = source === "timer" || started;
+      const focusedSeconds = focusedSecondsRef.current;
+      const shouldAward =
+        source === "timer" || (started && focusedSeconds >= MIN_MANUAL_REWARD_SECONDS);
+      const awardDurationMinutes =
+        source === "timer" ? totalDurationMinutes : Math.max(1, Math.floor(focusedSeconds / 60));
       const guard = focusGuardRef.current;
       const clean = guard.clean && guard.distractionCount === 0;
       const award = shouldAward
         ? awardFocusSession({
             taskId: selected.id,
-            durationMinutes: totalDurationMinutes,
+            durationMinutes: awardDurationMinutes,
             clean,
             distractionCount: guard.distractionCount,
           })
@@ -236,13 +248,17 @@ export function FocusSession({ tasks, onComplete }: Props) {
         });
       } else if (shouldAward) {
         toast.success(`Marked "${selected.title}" as completed.`);
+      } else if (started) {
+        toast.success(
+          `Marked "${selected.title}" as completed. Focus at least 1 minute to earn points.`,
+        );
       } else {
         toast.success(`Marked "${selected.title}" as completed. Start a session to earn points.`);
       }
 
-      resetFocusGuard();
+      resetSessionProgress();
     },
-    [awardFocusSession, onComplete, resetFocusGuard, selected, started, totalDurationMinutes],
+    [awardFocusSession, onComplete, resetSessionProgress, selected, started, totalDurationMinutes],
   );
 
   useEffect(() => {
@@ -261,10 +277,10 @@ export function FocusSession({ tasks, onComplete }: Props) {
           return br - 1;
         });
       } else {
+        focusedSecondsRef.current += 1;
         // 2. Standard Work Timer Countdown
         setRemaining((r) => {
           if (r <= 1) {
-            completeFocusSession("timer");
             return 0;
           }
 
@@ -287,7 +303,14 @@ export function FocusSession({ tasks, onComplete }: Props) {
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
-  }, [running, isOnBreak, totalDurationMinutes, completeFocusSession]);
+  }, [running, isOnBreak, totalDurationMinutes]);
+
+  useEffect(() => {
+    if (!running || !started || isOnBreak || remaining !== 0 || !selected) {
+      return;
+    }
+    completeFocusSession("timer");
+  }, [running, started, isOnBreak, remaining, selected, completeFocusSession]);
 
   const start = () => {
     if (!selected) {
@@ -295,10 +318,11 @@ export function FocusSession({ tasks, onComplete }: Props) {
       return;
     }
     if (!started) {
-      resetFocusGuard();
+      resetSessionProgress();
       setLastAward(null);
       setStarted(true);
     }
+    if (remaining <= 0) setRemaining(totalDurationMinutes * 60);
     setRunning(true);
   };
 
@@ -309,7 +333,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
     setStarted(false);
     setIsOnBreak(false);
     setLastAward(null);
-    resetFocusGuard();
+    resetSessionProgress();
     if (selected) setRemaining(totalDurationMinutes * 60);
   };
 
@@ -381,7 +405,7 @@ export function FocusSession({ tasks, onComplete }: Props) {
                 setRunning(false);
                 setTaskId(e.target.value);
                 setLastAward(null);
-                resetFocusGuard();
+                resetSessionProgress();
               }}
               className="mt-3 h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
@@ -480,8 +504,8 @@ export function FocusSession({ tasks, onComplete }: Props) {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Timer length is auto-set from this task's calendar duration. Finishing early? Hit "Mark
-          completed" to stop the timer and close out the task.
+          Timer length is auto-set from this task's calendar duration. Finishing early after at
+          least 1 focused minute can still earn points.
         </p>
       </div>
     </div>
