@@ -110,10 +110,10 @@ export function Dashboard({ tasks }: Props) {
       {/* ---------- NEW: Filter bar (range + search w/ suggestions) ---------- */}
       <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)] flex flex-col sm:flex-row gap-6 sm:gap-8 sm:items-end">
         <div className="flex-1">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          <Label className="block text-xs uppercase tracking-wider text-muted-foreground">
             Time range
           </Label>
-          <div className="mt-3 inline-flex rounded-md border bg-background p-1 gap-1">
+          <div className="mt-4 flex w-fit rounded-md border bg-background p-1 gap-1">
             {ranges.map((r) => (
               <button
                 key={r.key}
