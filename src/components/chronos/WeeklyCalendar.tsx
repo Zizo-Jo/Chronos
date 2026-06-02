@@ -33,6 +33,7 @@ interface Props {
 
 const DAY_START = 6; // 6:00
 const DAY_END = 23; // 23:00
+const LAST_CREATABLE_HOUR = DAY_END - 1;
 const HOUR_PX = 56;
 
 export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: Props) {
@@ -68,10 +69,18 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
             variant="ghost"
             size="icon"
             onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
+            aria-label="Previous week"
+            title="Previous week"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
+            aria-label="Next week"
+            title="Next week"
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setWeekAnchor(new Date())}>
@@ -94,6 +103,7 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
               onFocus={() => setSuggestOpen(true)}
               onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
               placeholder="Search tasks…"
+              aria-label="Search tasks"
               className="h-8 pl-7 pr-7 text-sm"
             />
             {query && (
@@ -103,6 +113,8 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
                   setQuery("");
                   setSuggestOpen(false);
                 }}
+                aria-label="Clear task search"
+                title="Clear task search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" />
@@ -211,10 +223,9 @@ export function WeeklyCalendar({ tasks, onAdd, onEdit, onDelete, onComplete }: P
               onDoubleClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const y = e.clientY - rect.top;
-                const hour = Math.max(
-                  DAY_START,
-                  Math.min(DAY_END, DAY_START + Math.floor(y / HOUR_PX)),
-                );
+                const rawHour = DAY_START + Math.floor(y / HOUR_PX);
+                if (rawHour >= DAY_END) return;
+                const hour = Math.max(DAY_START, Math.min(LAST_CREATABLE_HOUR, rawHour));
                 onAdd(format(d, "yyyy-MM-dd"), `${String(hour).padStart(2, "0")}:00`);
               }}
             >

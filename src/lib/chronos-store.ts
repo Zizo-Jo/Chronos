@@ -115,7 +115,7 @@ function applyMovementBreaks(tasks: Task[]): Task[] {
       if (
         bEnd &&
         timeToMinutes(bEnd) <= TIME_BOUNDARIES.LATEST_HOUR * 60 &&
-        !hasOverlap(cleaned, t.id, t.date, bStart, bEnd)
+        !hasOverlap([...cleaned, ...breaks], t.id, t.date, bStart, bEnd)
       ) {
         breaks.push({
           id: `break-${t.id}`,

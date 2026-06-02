@@ -39,8 +39,10 @@ interface Props {
 
 const addHour = (hhmm: string) => {
   const [h, m] = hhmm.split(":").map(Number);
-  const nh = Math.min(TIME_BOUNDARIES.LATEST_HOUR, (h ?? 0) + 1);
-  return `${String(nh).padStart(2, "0")}:${String(m ?? 0).padStart(2, "0")}`;
+  const nextMinutes = Math.min(TIME_BOUNDARIES.LATEST_HOUR * 60, (h ?? 0) * 60 + (m ?? 0) + 60);
+  const nh = Math.floor(nextMinutes / 60);
+  const nm = nextMinutes % 60;
+  return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
 };
 
 const toISO = (d: Date) =>
@@ -141,6 +143,8 @@ export function TaskDialog({
     let finalDateStr = date;
     let finalStartMin = 0;
 
+    const sourceBreakId = initial ? `break-${initial.id}` : null;
+
     // Look ahead up to 7 days to find a free opening
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
@@ -154,8 +158,12 @@ export function TaskDialog({
         searchStartMin = Math.max(ALLOWED_START, roundedCurrentMin);
       }
 
-      // Gather existing busy blocks for this specific iteration date
-      const dayTasks = tasks.filter((t) => t.date === currentDateStr && t.id !== initial?.id);
+      // Gather existing busy blocks for this specific iteration date.
+      // When editing, ignore the movement break generated from the same task:
+      // it will be rebuilt after saving and should not block its own reschedule.
+      const dayTasks = tasks.filter(
+        (t) => t.date === currentDateStr && t.id !== initial?.id && t.id !== sourceBreakId,
+      );
       const busyIntervals = dayTasks.map((t) => ({
         s: timeToMin(t.start),
         e: timeToMin(t.end),
@@ -245,7 +253,7 @@ export function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
             {initial ? "Reschedule task" : "New task"}
