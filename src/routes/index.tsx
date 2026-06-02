@@ -2,11 +2,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";
-import { Plus, CalendarDays, Target, BarChart3, Moon, Sun } from "lucide-react";
+import {
+  Plus,
+  CalendarDays,
+  Target,
+  BarChart3,
+  Moon,
+  Sun,
+  Bell,
+  BellOff,
+  BellRing,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useTasks } from "@/lib/chronos-store";
 import type { Task } from "@/lib/chronos-types";
+import { useTaskReminders } from "@/lib/task-reminders";
 import { TaskDialog } from "@/components/chronos/TaskDialog";
 import { WeeklyCalendar } from "@/components/chronos/WeeklyCalendar";
 import { FocusSession } from "@/components/chronos/FocusSession";
@@ -61,6 +72,13 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { tasks, add, update, remove } = useTasks();
+  const {
+    remindersEnabled,
+    remindersSupported,
+    notificationPermission,
+    reminderMinutes,
+    toggleReminders,
+  } = useTaskReminders(tasks);
   const [darkMode, setDarkMode] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
@@ -98,6 +116,13 @@ function Index() {
     if (editing) update(editing.id, t);
     else add(t);
   };
+  const reminderButtonTitle = !remindersSupported
+    ? "Task reminders are not supported in this browser"
+    : remindersEnabled
+      ? "Disable task reminders"
+      : notificationPermission === "denied"
+        ? "Browser notifications are blocked"
+        : `Enable task reminders ${reminderMinutes} minutes before tasks`;
 
   return (
     <div className="min-h-screen">
@@ -132,6 +157,24 @@ function Index() {
             <span className="font-display text-lg tracking-tight">Chronos</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={remindersEnabled ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => void toggleReminders()}
+              title={reminderButtonTitle}
+              aria-label={reminderButtonTitle}
+              className="border-primary/20 bg-background/70 hover:bg-accent"
+            >
+              {remindersEnabled ? (
+                <BellRing className="h-4 w-4" />
+              ) : notificationPermission === "denied" || !remindersSupported ? (
+                <BellOff className="h-4 w-4" />
+              ) : (
+                <Bell className="h-4 w-4" />
+              )}
+              <span className="hidden md:inline">{remindersEnabled ? "Alerts on" : "Alerts"}</span>
+            </Button>
             <Button
               type="button"
               variant="outline"
